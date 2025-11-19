@@ -57,5 +57,62 @@ Las partes aceptan jurisdicción exclusiva en Ushuaia, Tierra del Fuego.
 EL ADHERIDO declara haber leído y aceptado este contrato mediante tilde y clic, constituyendo firma electrónica válida según Ley 25.506.
 """
 
-# Aquí puedes agregar más contratos o documentos en el futuro
-# CONTRATO_OTRO = """..."""
+# segundo contrato
+CONTRATO_ASESORES_TU_GUIA_AR = """
+CONTRATO DE ASESOR COMERCIAL – TU GUÍA AR
+14/11 S.A.S. – CUIT 30-71914925-8 – Ushuaia, Tierra del Fuego
+Firma electrónica – Ley 25.506
+
+1. PARTES
+Entre 14/11 S.A.S. y la persona física o jurídica que solicita alta como asesor comercial (en adelante "EL ASESOR"), se celebra el presente contrato. La aceptación mediante tilde y clic constituye firma electrónica válida.
+
+2. OBJETO
+EL ASESOR presta un servicio independiente para difundir, explicar y derivar adheridos hacia Tu Guía AR mediante enlace o código personal.
+
+3. NATURALEZA DE LA RELACIÓN
+No existe relación laboral, dependencia, vínculo societario ni exclusividad. EL ASESOR actúa como prestador independiente.
+
+4. INSCRIPCIONES Y RESPONSABILIDAD FISCAL
+EL ASESOR declara estar inscripto y habilitado para facturar si corresponde. Sus obligaciones fiscales son personales. LA EMPRESA no verifica ni exige documentación tributaria.
+
+5. FUNCIONES DEL ASESOR
+Explicar el servicio verazmente.
+No prometer beneficios no autorizados.
+No cobrar dinero.
+No intervenir en pagos.
+No solicitar datos personales.
+Derivar interesados mediante su enlace.
+
+6. PROHIBICIÓN DE COBRAR DINERO
+EL ASESOR tiene prohibido recibir pagos, transferencias, señas o adelantos. Toda adhesión se realiza exclusivamente en la web oficial.
+
+7. COMISIONES
+Las comisiones se rigen por la Política Comercial vigente y pueden actualizarse sin nuevo contrato. Solo se pagan comisiones verificadas por IA.
+
+8. AUTORIZACIÓN PARA USO DE REDES SOCIALES Y WHATSAPP
+EL ASESOR autoriza a LA EMPRESA a publicar contenido institucional en sus redes sociales y WhatsApp Business. LA EMPRESA no accede a mensajes privados.
+
+9. USO RESTRINGIDO DE MATERIAL
+EL ASESOR no puede usar logos, marcas, diseños ni material oficial sin permiso, ni crear contenido que parezca institucional.
+
+10. PROHIBICIÓN DE PROMETER RESULTADOS
+EL ASESOR no puede garantizar ventas, asegurar ingresos ni prometer beneficios no oficiales.
+
+11. USO DE INTELIGENCIA ARTIFICIAL
+EL ASESOR autoriza IA para registrar derivaciones, validar adheridos, detectar fraude y generar contenido institucional. Registros digitales son prueba válida.
+
+12. RESPONSABILIDAD DEL ASESOR
+EL ASESOR es responsable por información falsa, daños, fraudes, actividad ilegal, uso indebido de marca o engaños a terceros.
+
+13. CLÁUSULA DE INDEMNIDAD
+EL ASESOR indemnizará a LA EMPRESA ante reclamos, daños, multas, fraudes, incumplimientos fiscales o afectación institucional. Incluye gastos y honorarios legales.
+
+14. DURACIÓN Y RESCISIÓN
+Contrato mensual renovable. LA EMPRESA puede rescindir por inactividad, incumplimiento o uso indebido de marca.
+
+15. JURISDICCIÓN
+Ambas partes aceptan jurisdicción exclusiva de Ushuaia, Tierra del Fuego.
+
+16. ACEPTACIÓN FINAL
+EL ASESOR declara haber leído y aceptado este contrato mediante tilde y clic.
+"""

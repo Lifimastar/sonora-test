@@ -26,7 +26,7 @@ import string
 
 from dotenv import load_dotenv
 from loguru import logger
-from knowledge_base import CONTRATO_TU_GUIA_AR
+from knowledge_base import CONTRATO_TU_GUIA_AR, CONTRATO_ASESORES_TU_GUIA_AR
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -195,22 +195,28 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
             CAPACIDADES:
             1. Puedes crear usuarios en Supabase usando la función crear_usuario_supabase
-            2. Puedes responder preguntas sobre el contrato de adhesión de Tu Guía AR
+            2. Puedes responder preguntas sobre los contratos de Tu Guía AR (Adheridos y Asesores)
             3. Puedes ayudar con información general sobre los servicios
 
-            CONOCIMIENTO DEL CONTRATO:
-            Tienes acceso completo al siguiente contrato de adhesión:
+            CONOCIMIENTO DE CONTRATOS:
+            Tienes acceso completo a los siguientes contratos:
 
+            === CONTRATO DE ADHESIÓN (ADHERIDOS) ===
             {CONTRATO_TU_GUIA_AR}
+
+            === CONTRATO DE ASESORES COMERCIALES ===
+            {CONTRATO_ASESORES_TU_GUIA_AR}
 
             INSTRUCCIONES:
             - Cuando te pidan crear un usuario, usa la función crear_usuario_supabase
             - Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio
             - La contraseña siempre se genera de forma segura y aleatoria
             - Después de crear el usuario, confirma de forma natural que se creó exitosamente
-            - Cuando te pregunten sobre el contrato, responde basándote en la información proporcionada
+            - Cuando te pregunten sobre contratos, identifica si se refieren al contrato de Adheridos o Asesores
+            - Responde basándote en la información proporcionada de los contratos
             - Sé preciso y cita las cláusulas relevantes cuando sea apropiado
-            - Si no sabes algo que no está en el contrato, admítelo honestamente
+            - Si no sabes algo que no está en los contratos, admítelo honestamente
+            - Si te preguntan sobre un tema que aplica a ambos contratos, menciona las diferencias si las hay
 
             Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.""",
         },
@@ -247,7 +253,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente de Tu Guía AR. Menciona que puedes ayudar con información del contrato y crear usuarios."})
+        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente de Tu Guía AR. Menciona que puedes ayudar con información de los contratos (Adheridos y Asesores) y crear usuarios."})
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
