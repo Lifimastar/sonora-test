@@ -49,10 +49,10 @@ from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIPro
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.cartesia.tts import CartesiaTTSService
-from pipecat.services.deepgram.stt import DeepgramSTTService
+from pipecat.services.deepgram.stt import DeepgramSTTService, LiveOptions
 from pipecat.services.openai.llm import OpenAILLMService
+from pipecat.transcriptions.language import Language
 from pipecat.transports.base_transport import BaseTransport, TransportParams
-from pipecat.transports.daily.transport import DailyParams
 
 logger.info("✅ All components loaded successfully!")
 
@@ -62,11 +62,28 @@ load_dotenv(override=True)
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+    # STT en espanol
+    live_options = LiveOptions(
+        model="nova-2",
+        language=Language.ES_419,
+        interim_results=True,
+        smart_format=True,
+        punctuate=True
+    )
+
+    stt = DeepgramSTTService(
+        api_key=os.getenv("DEEPGRAM_API_KEY"), 
+        live_options=live_options,
+    )
 
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="71a7ad14-091c-4e8e-a314-022ece01c121",  # British Reading Lady
+        voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1",
+        model="sonic-2",
+        params=CartesiaTTSService.InputParams(
+            language=Language.ES,
+            speed="normal",
+        ),
     )
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
@@ -74,7 +91,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     messages = [
         {
             "role": "system",
-            "content": "You are a friendly AI assistant. Respond naturally and keep your answers conversational.",
+            "content": "Eres un asistente amigable de IA. Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.",
         },
     ]
 
@@ -109,7 +126,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Say hello and briefly introduce yourself."})
+        messages.append({"role": "system", "content": "Saluda y preséntate brevemente."})
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")

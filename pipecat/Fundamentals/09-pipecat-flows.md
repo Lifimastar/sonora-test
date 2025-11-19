@@ -1,0 +1,498 @@
+# Pipecat Flows
+
+> Learn how to create structured conversations using Pipecat's flow system
+
+## What is Pipecat Flows?
+
+Pipecat Flows is an add-on framework for Pipecat that allows you to build structured conversations in your AI applications. It enables you to define conversation paths while handling the complexities of state management and LLM interactions.
+
+Want to dive right in? Check out these examples:
+
+<CardGroup cols={2}>
+  <Card title="Hello World" icon="rocket" href="https://github.com/pipecat-ai/pipecat-flows/tree/main/examples/quickstart">
+    A great first Flow to show you the ropes
+  </Card>
+
+  <Card title="Restaurant Reservation" icon="utensils" href="https://github.com/pipecat-ai/pipecat-flows/blob/main/examples/restaurant_reservation.py">
+    A simple, practical Flow example
+  </Card>
+</CardGroup>
+
+## How do Pipecat and Pipecat Flows work together?
+
+**Pipecat** defines the core capabilities of your bot. This includes the pipeline and processors which, at a minimum, enable your bot to:
+
+* Receive audio from a user
+* Transcribe the user's input
+* Run an LLM completion
+* Convert the LLM response to audio
+* Send audio back to the user
+
+**Pipecat Flows** complements Pipecat's core functionality by providing structure to a conversation, managing context and tools as the conversation progresses from one state to another. This is separate from the core pipeline, allowing you to separate conversation logic from core pipeline mechanics.
+
+## When to Use Pipecat Flows?
+
+Pipecat Flows is best suited for use cases where:
+
+* **You need precise control** over how a conversation progresses through specific steps
+* **Your bot handles complex tasks** that can be broken down into smaller, manageable pieces
+* **You want to improve LLM accuracy** by focusing the model on one specific task at a time instead of managing multiple responsibilities simultaneously
+
+This approach addresses a common problem: traditional methods often use large, monolithic prompts with many tools available at once, leading to hallucinations and lower accuracy.
+
+Pipecat Flows solves this by:
+
+* **Breaking complex tasks into focused steps** - Each node has a clear, single purpose
+* **Providing relevant tools only when needed** - Functions are available only in the appropriate context
+* **Giving clear, specific instructions** - Task messages focus the LLM on exactly what to do next
+
+## Selecting a Flows Pattern
+
+Pipecat Flows provides two general patterns for how to build your application: Dynamic Flows and Static Flows.
+
+* **Dynamic Flows (recommended)**: When conversation paths need to be determined at runtime based on user input, external data, or business logic.
+* **Static Flows**: When your conversation structure is known upfront and follows predefined paths.
+
+<Note>
+  Dynamic Flows can handle both simple and complex use cases. Selecting it
+  provides you with an option that can grow with the complexity of your
+  application. For these reasons, we strongly recommend it as the API pattern to
+  follow.
+</Note>
+
+## Technical Overview
+
+Pipecat Flows represents a conversation as a graph, where each step of the conversation is represented by a node. Nodes are of type `NodeConfig`, and may contain the following properties:
+
+* `name`: The name of the node; used as a reference to transition to the node.
+* `role_messages`: A list of message `dicts` defining the bot's role/personality. Typically set once in the initial node.
+* `task_messages`: A list of message `dicts` defining the current node's objectives.
+* `functions`: A list of function call definitions and their corresponding handlers.
+* `pre_actions`: Actions to execute before LLM inference. Actions run once upon transitioning to a node.
+* `post_actions`: Actions to execute after LLM inference. Actions run once after the node's initial LLM inference.
+* `context_strategy`: Strategy for updating context during transitions. The default behavior is to append messages to the context.
+* `respond_immediately`: Whether to run LLM inference as soon as the node is set. The default is True.
+
+<Info>
+  The only required field is `task_messages`, as your bot always needs a prompt
+  to advance the conversation.
+</Info>
+
+Now that we've defined the structure of a node, let's look at the components that make up a node.
+
+### Messages
+
+Messages define what your bot should do and how it should behave at each node in your conversation flow.
+
+#### Message Types
+
+There are two types of messages you can configure:
+
+**Role Messages** (Optional)
+Define your bot's personality, tone, and overall behavior. These are typically set once at the beginning of your flow and establish the consistent persona your bot maintains throughout the conversation.
+
+**Task Messages** (Required)
+Define the specific objective your bot should accomplish in the current node. These messages focus the LLM on the immediate task at hand, such as asking a specific question or processing particular information.
+
+#### Message Format
+
+Messages are specified in OpenAI format as a list of `dicts`:
+
+```python  theme={null}
+"role_messages": [
+    {
+        "role": "system",
+        "content": "You are an inquisitive child.",
+    }
+],
+"task_messages": [
+    {
+        "role": "system",
+        "content": "Say 'Hello world' and ask what is the user's favorite color.",
+    }
+],
+```
+
+#### Cross-Provider Compatibility
+
+Pipecat's default message format uses the OpenAI message spec. With this message format, messages are automatically translated by Pipecat to work with your chosen LLM provider, making it easy to switch between OpenAI, Anthropic, Google, and other providers without changing your code.
+
+<Warning>
+  Some LLMs, like Anthropic and Gemini, can only set the system instruction at
+  initialization time. This means you will only be able to set the
+  `role_messages` at initialization for those LLMs.
+</Warning>
+
+### Functions
+
+Functions in Pipecat Flows serve two key purposes:
+
+1. **Process data** by interfacing with external systems and APIs to read or write information
+2. **Progress the conversation** by transitioning between nodes in your flow
+
+#### How Functions Work
+
+When designing your nodes, clearly define the task in the `task_messages` and reference the available functions. The LLM will use these functions to complete the task and signal when it's ready to move forward.
+
+For example, if your node's job is to collect a user's favorite color:
+
+1. The LLM asks the question
+2. The user provides their answer
+3. The LLM calls the function with the answer
+4. The function processes the data and determines the next node
+
+#### Function Definition
+
+Flows provides a universal `FlowsFunctionSchema` that works across all LLM providers:
+
+```python  theme={null}
+from pipecat_flows import FlowsFunctionSchema
+
+record_favorite_color_func = FlowsFunctionSchema(
+    name="record_favorite_color_func",
+    description="Record the color the user said is their favorite.",
+    required=["color"],
+    handler=record_favorite_color_and_set_next_node,
+    properties={"color": {"type": "string"}},
+)
+```
+
+#### Function Handlers
+
+Each function has a corresponding `handler` where you implement your application logic and specify the next node:
+
+```python  theme={null}
+async def record_favorite_color_and_set_next_node(
+    args: FlowArgs, flow_manager: FlowManager
+) -> tuple[str, NodeConfig]:
+    """Function handler that records the color then sets the next node.
+
+    Here "record" means print to the console, but any logic could go here:
+    Write to a database, make an API call, etc.
+    """
+    print(f"Your favorite color is: {args['color']}")
+    return args["color"], create_end_node()
+```
+
+#### Handler Return Values
+
+Function handlers must return a tuple containing:
+
+* **Result**: Data provided to the LLM for context in subsequent completions
+* **Next Node**: The `NodeConfig` for Flows to transition to next
+
+Some handlers may not want to transition conversational state, in which case you can return `None` for the next node. Other handlers may *only* want to transition conversational state without doing other work, in which case you can return `None` for the result.
+
+#### Direct Functions
+
+For more concise code, you can optionally use Direct Functions where the function definition and handler are combined in a single function. The function signature and docstring are automatically used to generate the function schema:
+
+```python  theme={null}
+async def record_favorite_color(
+    flow_manager: FlowManager,
+    color: str
+) -> tuple[FlowResult, NodeConfig]:
+    """
+    Record the color the user said is their favorite.
+
+    Args:
+        color (str): The user's favorite color
+    """
+    print(f"Your favorite color is: {args["color"]}")
+    return args["color"], create_end_node()
+
+# Use directly in NodeConfig
+node_config = {
+    "functions": [record_favorite_color]
+}
+```
+
+This approach eliminates the need for separate `FlowsFunctionSchema` definitions while maintaining the same functionality.
+
+### Actions
+
+Actions allow you to execute custom functionality at specific points in your conversation flow, giving you precise control over timing and sequencing.
+
+#### Action Types
+
+* `pre_actions` execute immediately when transitioning to a new node, *before* the LLM inference begins.
+* `post_actions` execute after the LLM inference completes and any TTS has finished speaking.
+
+#### Built-in Actions
+
+Pipecat Flows includes several ready-to-use actions for common scenarios:
+
+* **`tts_say`**: Speak a phrase immediately (useful for "please wait" messages)
+
+```python  theme={null}
+"pre_actions": [
+    {
+        "type": "tts_say",
+        "text": "Please hold while I process your request..."
+    }
+]
+```
+
+* **`end_conversation`**: Gracefully terminate the conversation
+
+```python  theme={null}
+"post_actions": [
+    {
+        "type": "end_conversation",
+        "text": "Thank you for your time!"
+    }
+]
+```
+
+* **`function`**: Execute a custom function at the specified timing
+
+```python  theme={null}
+"post_actions": [
+    {
+        "type": "function",
+        "handler": end_conversation_handler
+    }
+]
+```
+
+#### Custom Actions
+
+You can define your own actions to handle specific business logic or integrations. In most cases, consider using a **function action** first, as it executes at the expected time in the pipeline.
+
+Custom actions give you complete flexibility to execute any functionality your application needs, but require careful timing considerations.
+
+#### Action Timing
+
+The execution order ensures predictable behavior:
+
+1. **Pre-actions** run first upon node entry (in the order they are defined)
+2. **LLM inference** processes the node's messages and functions
+3. **TTS** speaks the LLM's response
+4. **Post-actions** run after TTS completes (in the order they are defined)
+
+This timing guarantees that actions execute in the correct sequence, such as ensuring the bot finishes speaking before ending the conversation. Note that custom actions may not follow this predictable timing, which is another reason to prefer function actions when possible.
+
+### Context Strategy
+
+Flows provides three built-in ways to manage conversation context as you move between nodes:
+
+#### Strategy Types
+
+1. **APPEND** (Default): New node messages are added to the existing context, preserving the full conversation history. The context grows as the conversation progresses.
+
+2. **RESET**: The context is cleared and replaced with only the new node's messages. Useful when previous conversation history is no longer relevant or to reduce context window size.
+
+3. **RESET\_WITH\_SUMMARY**: The context is cleared but includes an AI-generated summary of the previous conversation along with the new node's messages. Helps reduce context size while preserving key information.
+
+#### When to Use Each Strategy
+
+* Use **APPEND** when full conversation history is important for context
+* Use **RESET** when starting a new topic or when previous context might confuse the current task
+* Use **RESET\_WITH\_SUMMARY** for long conversations where you need to preserve key points but reduce context size
+
+#### Configuration Examples
+
+Context strategies can be defined globally in the FlowManager constructor:
+
+```python  theme={null}
+from pipecat_flows import ContextStrategy, ContextStrategyConfig
+
+# Global strategy configuration
+flow_manager = FlowManager(
+    task=task,
+    llm=llm,
+    context_aggregator=context_aggregator,
+    context_strategy=ContextStrategyConfig(
+        strategy=ContextStrategy.APPEND,
+    )
+)
+```
+
+Or on a per-node basis:
+
+```python  theme={null}
+# Per-node strategy configuration
+node_config = {
+    "task_messages": [...],
+    "functions": [...],
+    "context_strategy": ContextStrategyConfig(
+        strategy=ContextStrategy.RESET_WITH_SUMMARY,
+        summary_prompt="Provide a concise summary of the customer's order details and preferences."
+    )
+}
+```
+
+### Respond Immediately
+
+For each node in the conversation, you can decide whether the LLM should respond immediately upon entering the node (the default behavior) or whether the LLM should wait for the user to speak first before responding. You do this using the `respond_immediately` field.
+
+<Tip>
+  `respond_immediately=False` may be particularly useful in the very first node,
+  especially in outbound-calling cases where the user has to first answer the
+  phone to trigger the conversation.
+</Tip>
+
+```python  theme={null}
+NodeConfig(
+    task_messages=[
+        {
+            "role": "system",
+            "content": "Warmly greet the customer and ask how many people are in their party. This is your only job for now; if the customer asks for something else, politely remind them you can't do it.",
+        }
+    ],
+    respond_immediately=False,
+    # ... other fields
+)
+```
+
+<Warning>
+  Keep in mind that if you specify `respond_immediately=False`, the user may not
+  be aware of the conversational task at hand when entering the node (the bot
+  hasn't told them yet). While it's always important to have guardrails in your
+  node messages to keep the conversation on topic, letting the user speak first
+  makes it even more so.
+</Warning>
+
+## Initialization
+
+Initialize your flow by creating a `FlowManager` instance and calling `initialize()` to start the conversation.
+
+### Dynamic Flow
+
+First, create the FlowManager:
+
+```python  theme={null}
+flow_manager = FlowManager(
+    task=task,                              # PipelineTask
+    llm=llm,                                # LLMService
+    context_aggregator=context_aggregator,  # Context aggregator
+    transport=transport,                    # Transport
+)
+```
+
+Then, initialize by passing the first `NodeConfig` into the `initialize()` method:
+
+```python  theme={null}
+@transport.event_handler("on_client_connected")
+async def on_client_connected(transport, client):
+    logger.info(f"Client connected")
+    # Kick off the conversation.
+    await flow_manager.initialize(create_initial_node())
+```
+
+### Static Flow
+
+First, create the FlowManager:
+
+```python  theme={null}
+flow_manager = FlowManager(
+    task=task,                              # PipelineTask
+    llm=llm,                                # LLMService
+    context_aggregator=context_aggregator,  # Context aggregator
+    flow_config=flow_config,                # FlowConfig
+)
+```
+
+Then initialize:
+
+```python  theme={null}
+@transport.event_handler("on_first_participant_joined")
+async def on_first_participant_joined(transport, participant):
+    await transport.capture_participant_transcription(participant["id"])
+    logger.debug("Initializing flow")
+    await flow_manager.initialize()
+```
+
+<Note>For Static Flows, `initialize()` does not take any args.</Note>
+
+## Cross-Node Logic
+
+### State
+
+Pipecat Flows supports cross-node state through the `flow_manager.state` dictionary. This persistent storage lets you share data across nodes throughout the entire conversation:
+
+```python  theme={null}
+async def record_favorite_color_and_set_next_node(
+    args: FlowArgs, flow_manager: FlowManager
+) -> tuple[str, NodeConfig]:
+    """Function handler that records the color then sets the next node.
+
+    Here "record" means print to the console, but any logic could go here;
+    Write to a database, make an API call, etc.
+    """
+    flow_manager.state["color"] = args["color"] # Cross-node state setting
+    print(f"Your favorite color is: {args['color']}")
+    return args["color"], create_end_node()
+```
+
+### Functions
+
+Pipecat Flows supports defining functions that are available across all nodes in your flow. They're defined in the same way as node-specific functions, but are passed into the FlowManager at initialization:
+
+```python  theme={null}
+flow_manager = FlowManager(
+    task=task,
+    llm=llm,
+    context_aggregator=context_aggregator,
+    transport=transport,
+    global_functions=[global_function_1, global_function_2], # Cross-node functions
+)
+```
+
+## Usage Examples:
+
+### Dynamic Flow (Recommended)
+
+Here's an example that ties together all the concepts we've covered:
+
+```python  theme={null}
+def create_initial_node() -> NodeConfig:
+    """Create the initial node of the flow.
+
+    Define the bot's role and task for the node as well as the function for it to call.
+    The function call includes a handler which provides the function call result to
+    Pipecat and then transitions to the next node.
+    """
+    record_favorite_color_func = FlowsFunctionSchema(
+        name="record_favorite_color_func",
+        description="Record the color the user said is their favorite.",
+        required=["color"],
+        handler=record_favorite_color_and_set_next_node,
+        properties={"color": {"type": "string"}},
+    )
+
+    return {
+        "name": "initial",
+        "role_messages": [
+            {
+                "role": "system",
+                "content": "You are an inquisitive child. Use very simple language. Ask simple questions. You must ALWAYS use one of the available functions to progress the conversation. Your responses will be converted to audio. Avoid outputting special characters and emojis.",
+            }
+        ],
+        "task_messages": [
+            {
+                "role": "system",
+                "content": "Say 'Hello world' and ask what is the user's favorite color.",
+            }
+        ],
+        "functions": [record_favorite_color_func],
+    }
+```
+
+### Static Flow
+
+For static flows, you define your entire flow structure upfront using a `FlowConfig`. This follows the same rules as the NodeConfig, but is assembled as a single JSON object that defines the entire state of the program.
+
+## Next Steps
+
+Now that you understand the basics of Pipecat Flows, explore the reference docs and more examples:
+
+<CardGroup cols={2}>
+  <Card title="Pipecat Flows Reference" icon="book" href="/server/frameworks/flows/pipecat-flows">
+    Complete API reference and technical details
+  </Card>
+
+  <Card title="Pipecat Flows Examples" icon="rocket" href="https://github.com/pipecat-ai/pipecat-flows/tree/main/examples">
+    Explore more complex examples and use cases
+  </Card>
+</CardGroup>

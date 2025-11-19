@@ -1,0 +1,402 @@
+# Quickstart
+
+> Run your first Pipecat bot in under 5 minutes
+
+This quickstart guide will help you build and deploy your first Pipecat voice AI bot. You'll create a simple conversational agent that you can talk to in real-time, then deploy it to production on Pipecat Cloud.
+
+**Two steps**: Local Development (5 min) → Production Deployment (5 min)
+
+## Step 1: Local Development
+
+### Prerequisites
+
+**Environment**
+
+* Python 3.10 or later
+* [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager installed
+
+**AI Service API Keys**
+
+This quickstart uses three AI services working together in a pipeline. You'll need API keys from each service:
+
+<CardGroup cols={3}>
+  <Card title="Deepgram (STT)" icon="microphone" href="https://console.deepgram.com/signup">
+    Create an account and generate your API key for real-time
+    speech recognition.
+  </Card>
+
+  <Card title="OpenAI (LLM)" icon="brain" href="https://auth.openai.com/create-account">
+    Create an account and generate an API key for intelligent conversation
+    responses.
+  </Card>
+
+  <Card title="Cartesia (TTS)" icon="volume-high" href="https://play.cartesia.ai/sign-up">
+    Sign up and generate your API key for natural voice
+    synthesis.
+  </Card>
+</CardGroup>
+
+Have these API keys ready. You'll add them to your environment file in the next section.
+
+### Setup
+
+1. Clone the quickstart repository
+
+```bash  theme={null}
+git clone https://github.com/pipecat-ai/pipecat-quickstart.git
+cd pipecat-quickstart
+```
+
+2. Configure your API keys
+
+Create your environment file:
+
+```bash  theme={null}
+cp env.example .env
+```
+
+Open the `.env` file in your text editor and add your API keys:
+
+```ini  theme={null}
+DEEPGRAM_API_KEY=your_deepgram_api_key
+OPENAI_API_KEY=your_openai_api_key
+CARTESIA_API_KEY=your_cartesia_api_key
+```
+
+3. Set up virtual environment and install dependencies
+
+```bash  theme={null}
+uv sync
+```
+
+### Run your bot locally
+
+Now you're ready to run your bot! Start it with
+
+```bash  theme={null}
+uv run bot.py
+```
+
+You should see output similar to this:
+
+```
+🚀 WebRTC server starting at http://localhost:7860/client
+   Open this URL in your browser to connect!
+```
+
+Open [http://localhost:7860/client](http://localhost:7860/client) in your browser and click **Connect** to start talking to your bot.
+
+<Note>
+  **First run note**: The initial startup may take \~20 seconds as Pipecat
+  downloads required models and imports. Subsequent runs will be much faster.
+</Note>
+
+🎉 **Success!** Your bot is running locally. Now let's deploy it to production so others can use it.
+
+***
+
+## Step 2: Deploy to Production
+
+Transform your local bot into a production-ready service. Pipecat Cloud handles scaling, monitoring, and global deployment.
+
+### Prerequisites
+
+1. Sign up for Pipecat Cloud
+
+[Create your Pipecat Cloud account](https://pipecat.daily.co/sign-up) to deploy and manage your bots.
+
+2. Set up Docker
+
+* **Install [Docker](https://www.docker.com/)** on your system
+* **Create a [Docker Hub](https://hub.docker.com/) account**
+* **Login to Docker Hub:**
+
+```bash  theme={null}
+docker login
+```
+
+3. Pipecat CLI
+
+The Pipecat CLI is already installed with your quickstart project.
+
+Log in to Pipecat Cloud using the CLI to get started:
+
+```bash  theme={null}
+uv run pipecat cloud auth login
+```
+
+You'll be presented with a link that you can click to authenticate your client.
+
+### Configure your deployment
+
+The `pcc-deploy.toml` file tells Pipecat Cloud how to run your bot. **Update the image field** with your Docker Hub username:
+
+```toml  theme={null}
+agent_name = "quickstart"
+image = "YOUR_DOCKERHUB_USERNAME/quickstart:0.1"  # 👈 Update this line
+secret_set = "quickstart-secrets"
+
+[scaling]
+	min_agents = 1
+```
+
+**Understanding the configuration:**
+
+* `agent_name`: Your bot's name in Pipecat Cloud
+* `image`: The Docker image to deploy (format: `username/image:version`)
+* `secret_set`: Where your API keys are stored securely
+* `min_agents`: Number of bot instances to keep ready (1 = instant start)
+
+<Tip>
+  [Set up
+  `image_credentials`](/deployment/pipecat-cloud/fundamentals/secrets#image-pull-secrets)
+  in your TOML file for authenticated image pulls.
+</Tip>
+
+### Configure secrets
+
+Upload your API keys to Pipecat Cloud's secure storage:
+
+```bash  theme={null}
+uv run pipecat cloud secrets set quickstart-secrets --file .env
+```
+
+This creates a secret set called `quickstart-secrets` (matching your TOML file) and uploads all your API keys from `.env`.
+
+### Build and deploy
+
+1. Build and push your Docker image
+
+```bash  theme={null}
+uv run pipecat cloud docker build-push
+```
+
+This builds your Docker image and pushes it to Docker Hub based on the `image` information in your `pcc-deploy.toml` file.
+
+2. Deploy to Pipecat Cloud
+
+```bash  theme={null}
+uv run pipecat cloud deploy
+```
+
+### Connect to your agent
+
+1. Open your [Pipecat Cloud dashboard](https://pipecat.daily.co/)
+2. Select your `quickstart` agent → **Sandbox**
+3. Allow microphone access and click **Connect**
+
+🎉 **Your bot is now live in production!**
+
+<Card title="Ready to scale?" icon="rocket" href="/deployment/pipecat-cloud/introduction">
+  Explore advanced Pipecat Cloud features like scaling, monitoring, secrets
+  management, and production best practices.
+</Card>
+
+***
+
+## Understanding the Quickstart Bot
+
+When you speak to your bot, here's the real-time pipeline that processes your conversation:
+
+1. **Audio Capture**: Your browser captures microphone audio and sends it via WebRTC
+2. **Voice Activity Detection**: Silero VAD detects when you start and stop speaking
+3. **Speech Recognition**: Deepgram converts your speech to text in real-time
+4. **Language Processing**: OpenAI's GPT model generates an intelligent response
+5. **Speech Synthesis**: Cartesia converts the response text back to natural speech
+6. **Audio Playback**: The generated audio streams back to your browser
+
+Each step happens with minimal latency, typically completing the full round-trip in under one second.
+
+### AI Services
+
+Your bot uses three AI services, each configured with API keys from your `.env` file:
+
+```python  theme={null}
+# Create AI Services
+stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+tts = CartesiaTTSService(
+    api_key=os.getenv("CARTESIA_API_KEY"),
+    voice_id="71a7ad14-091c-4e8e-a314-022ece01c121",
+)
+llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
+```
+
+Pipecat supports many different AI services. You can swap out Deepgram for Azure Speech, OpenAI for Anthropic, or Cartesia for ElevenLabs without changing the rest of your code.
+
+See the [supported services documentation](/server/services/supported-services) for all available options.
+
+### Context and Messages
+
+Your bot maintains conversation history using a context object, enabling multi-turn interactions where the bot remembers what was said earlier.
+
+The context is initialized with a system message that defines the bot's personality:
+
+```python  theme={null}
+# All messages use the OpenAI message format
+messages = [
+    {
+        "role": "system",
+        "content": "You are a friendly AI assistant. Respond naturally and keep your answers conversational.",
+    },
+]
+
+context = OpenAILLMContext(messages)
+context_aggregator = llm.create_context_aggregator(context)
+```
+
+The context aggregator automatically collects user messages (after speech-to-text) and assistant responses (after text-to-speech), maintaining the conversation flow without manual intervention.
+
+### RTVI Protocol
+
+When building web or mobile clients, you can use [Pipecat's client SDKs](/client/introduction) that communicate with your bot via the [RTVI (Real-Time Voice Interaction) protocol](/client/rtvi-standard). In our quickstart example, we initialize the RTVI processor to handle client-server messaging and events:
+
+```python  theme={null}
+rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
+```
+
+See below for how we incorporate the RTVI processor into the pipeline.
+
+### Pipeline Configuration
+
+The core of your bot is a Pipeline that processes data through a series of processors:
+
+```python  theme={null}
+# Create the pipeline with the processors
+pipeline = Pipeline([
+    transport.input(),              # Receive audio from browser
+    rtvi,                           # Protocol for client/server messaging and events
+    stt,                            # Speech-to-text (Deepgram)
+    context_aggregator.user(),      # Add user message to context
+    llm,                            # Language model (OpenAI)
+    tts,                            # Text-to-speech (Cartesia)
+    transport.output(),             # Send audio back to browser
+    context_aggregator.assistant(), # Add bot response to context
+])
+```
+
+Data flows through the pipeline as "frames", objects containing audio, text, or other data types. The ordering is crucial: audio must be transcribed before it can be processed by the LLM, and text must be synthesized before it can be played back.
+
+The pipeline is managed by a PipelineTask:
+
+```python  theme={null}
+# Create a PipelineTask to manage the pipeline execution
+task = PipelineTask(
+    pipeline,
+    params=PipelineParams(
+        enable_metrics=True,
+        enable_usage_metrics=True,
+    ),
+    observers=[RTVIObserver(rtvi)],
+)
+```
+
+The task handles pipeline execution, collects metrics, and manages RTVI events through [observers](/server/utilities/observers/observer-pattern).
+
+### Event Handlers
+
+Event handlers manage the bot's lifecycle and user interactions:
+
+```python  theme={null}
+# Event handler for when a client connects
+@transport.event_handler("on_client_connected")
+async def on_client_connected(transport, client):
+    logger.info(f"Client connected")
+    # Add a greeting message to the context
+    messages.append({"role": "system", "content": "Say hello and briefly introduce yourself."})
+    # Prompt the bot to start talking when the client connects
+    await task.queue_frames([LLMRunFrame()])
+
+# Event handler for when a client disconnects
+@transport.event_handler("on_client_disconnected")
+async def on_client_disconnected(transport, client):
+    logger.info(f"Client disconnected")
+    # Cancel the task when the client disconnects
+    # This stops the pipeline and all processors, cleaning up resources
+    await task.cancel()
+```
+
+When a client connects, the bot adds a greeting instruction and queues a context frame to initiate the conversation. When disconnecting, it properly cancels the task to clean up resources.
+
+### Running the Pipeline
+
+Finally, the pipeline is executed by a PipelineRunner:
+
+```python  theme={null}
+# Create a PipelineRunner to run the task
+runner = PipelineRunner(handle_sigint=False)
+
+# Finally, run the task using the runner
+# This will start the pipeline and begin processing frames
+await runner.run(task)
+```
+
+The runner manages the pipeline's execution lifecycle. Note that `handle_sigint=False` because the main runner handles system signals.
+
+### Bot Entry Point
+
+The quickstart uses Pipecat's runner system:
+
+```python  theme={null}
+async def bot(runner_args: RunnerArguments):
+    """Main bot entry point."""
+
+    # Configure transport parameters for different environments
+    transport_params = {
+        "daily": lambda: DailyParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_analyzer=SileroVADAnalyzer(),
+        ),
+        "webrtc": lambda: TransportParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_analyzer=SileroVADAnalyzer(),
+        ),
+    }
+
+    transport = await create_transport(runner_args, transport_params)
+    await run_bot(transport, runner_args)
+
+if __name__ == "__main__":
+    from pipecat.runner.run import main
+    main()
+```
+
+This runner automatically handles WebRTC connection setup and management, making it easy to get started with minimal configuration. The same code works for both local development and production deployment.
+
+<Tip>
+  **Production ready**: This bot pattern is fully compatible with Pipecat Cloud,
+  meaning you can deploy your bot without any code changes.
+</Tip>
+
+## Troubleshooting
+
+* **Browser permissions**: Make sure to allow microphone access when prompted by your browser.
+* **Connection issues**: If the WebRTC connection fails, first try a different browser. If that fails, make sure you don't have a VPN or firewall rules blocking traffic. WebRTC uses UDP to communicate.
+* **Audio issues**: Check that your microphone and speakers are working and not muted.
+
+## Next Steps
+
+Congratulations! You've built and deployed your first Pipecat bot. Here's what to do next based on your goals:
+
+### 🚀 Ready to Build Your Own Application?
+
+The quickstart gave you a working example, but the Pipecat CLI helps you scaffold production-ready projects with your choice of platform (phone vs web/mobile), transport providers, and AI services—all tailored to your specific use case.
+
+<Card title="Build Your Next Bot" icon="rocket" href="/getting-started/build-your-next-bot">
+  Use the CLI to scaffold phone or web/mobile projects customized for your needs
+</Card>
+
+### 🧠 Want to Understand How It Works?
+
+Dive deeper into Pipecat's architecture and learn how to build custom solutions.
+
+<CardGroup cols={2}>
+  <Card title="Learn Core Concepts" icon="book-open" href="/guides/learn/overview">
+    Master pipelines, processors, transports, and context management
+  </Card>
+
+  <Card title="Browse Examples" icon="code" href="https://github.com/pipecat-ai/pipecat-examples">
+    30+ production-ready examples for inspiration
+  </Card>
+</CardGroup>
