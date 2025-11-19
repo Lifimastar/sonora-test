@@ -26,11 +26,7 @@ import string
 
 from dotenv import load_dotenv
 from loguru import logger
-from knowledge_base import (
-    CONTRATO_TU_GUIA_AR, 
-    CONTRATO_ASESORES_TU_GUIA_AR,
-    TERMINOS_Y_CONDICIONES_ECOSISTEMA
-)
+from rag_service import get_relevant_context
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -147,6 +143,49 @@ async def crear_usuario_supabase(params: FunctionCallParams):
         })
 
 
+async def buscar_informacion(params: FunctionCallParams):
+    """
+    Busca información relevante en la base de conocimiento sobre contratos, términos y servicios.
+    
+    Usa esta función SIEMPRE que el usuario pregunte sobre:
+    - Contratos (adheridos o asesores)
+    - Términos y condiciones
+    - Servicios, obligaciones, derechos o prohibiciones
+    - Información de contacto o legal
+    
+    :param params: Parámetros de la llamada, debe incluir 'query' en los argumentos.
+    """
+    try:
+        # Extraer la pregunta o tema de búsqueda
+        query = params.arguments.get("query") or params.arguments.get("pregunta")
+        
+        if not query:
+            # Si no hay query, intentar usar el último mensaje del usuario o pedir aclaración
+            resultado = {
+                "success": False,
+                "mensaje": "No se especificó qué buscar."
+            }
+        else:
+            logger.info(f"🔍 Buscando en RAG: {query}")
+            # Buscar en la base de conocimiento
+            context = get_relevant_context(query)
+            
+            resultado = {
+                "success": True,
+                "informacion": context,
+                "mensaje": "Información encontrada. Úsala para responder al usuario."
+            }
+        
+        # Devolver el resultado al LLM
+        await params.result_callback(resultado)
+        
+    except Exception as e:
+        logger.error(f"❌ Error en búsqueda RAG: {e}")
+        await params.result_callback({
+            "success": False,
+            "error": str(e)
+        })
+
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
@@ -182,9 +221,12 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
 
     # crear el esquima de herramientas pasando la funcion directamente
-    tools = ToolsSchema(standard_tools=[crear_usuario_supabase])
+    tools = ToolsSchema(standard_tools=[
+        crear_usuario_supabase,
+        buscar_informacion
+        ])
 
-    # registrar la funcion en el LLM
+    # registrar la funcion de crear usuarios
     llm.register_function(
         "crear_usuario_supabase",
         crear_usuario_supabase,
@@ -192,46 +234,39 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         cancel_on_interruption=False
     )
 
+    # registrar la funcion de busqueda 
+    llm.register_function(
+        "buscar_informacion",
+        buscar_informacion,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
+
     messages = [
         {
             "role": "system",
-            "content": f"""Eres un asistente amigable de IA que trabaja para 14/11 S.A.S., empresa propietaria del Ecosistema Red Futura (Red Futura y Tu Guía AR).
+            "content": """Eres un asistente experto y amigable del Ecosistema Red Futura (que incluye Tu Guía AR).
 
             CAPACIDADES:
-            1. Puedes crear usuarios en Supabase usando la función crear_usuario_supabase
-            2. Puedes responder preguntas sobre contratos y términos del ecosistema
-            3. Puedes ayudar con información general sobre los servicios
+            1. 🔍 BUSCAR INFORMACIÓN: Tienes acceso a una base de conocimiento completa con contratos, términos y condiciones.
+            - Cuando te pregunten sobre reglas, servicios, obligaciones, contratos o términos legales, DEBES usar la función `buscar_informacion`.
+            - NO inventes información legal. Búscala siempre.
 
-            CONOCIMIENTO COMPLETO DEL ECOSISTEMA:
-            Tienes acceso a toda la documentación legal y comercial:
+            2. 👤 CREAR USUARIOS: Puedes registrar nuevos usuarios en el sistema.
+            - Usa la función [crear_usuario_supabase](cci:1://file:///c:/Users/luisf/ProyectosPython/bot-sonora/pipecat-quickstart/bot.py:78:0-146:10).
+            - Si no te dan un email, genera uno aleatorio.
+            - Siempre genera contraseña segura.
 
-            === CONTRATO DE ADHESIÓN (ADHERIDOS A TU GUÍA AR) ===
-            {CONTRATO_TU_GUIA_AR}
+            INSTRUCCIONES DE INTERACCIÓN:
+            - Tu objetivo es ayudar y resolver dudas con precisión.
+            - Si usas `buscar_informacion`, basa tu respuesta EXCLUSIVAMENTE en lo que encuentres.
+            - Si la búsqueda no arroja resultados, dilo honestamente y ofrece contactar a soporte (contacto@redesfutura.com).
+            - Mantén un tono profesional pero cercano y amable.
+            - Habla siempre en español.
 
-            === CONTRATO DE ASESORES COMERCIALES ===
-            {CONTRATO_ASESORES_TU_GUIA_AR}
-
-            === TÉRMINOS Y CONDICIONES DEL ECOSISTEMA RED FUTURA ===
-            {TERMINOS_Y_CONDICIONES_ECOSISTEMA}
-
-            INSTRUCCIONES:
-            - Cuando te pidan crear un usuario, usa la función crear_usuario_supabase
-            - Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio
-            - La contraseña siempre se genera de forma segura y aleatoria
-            - Después de crear el usuario, confirma de forma natural que se creó exitosamente
-            
-            - Cuando te pregunten sobre documentación legal, identifica el documento correcto:
-              * Contrato de Adheridos: para clientes que se adhieren a Tu Guía AR
-              * Contrato de Asesores: para asesores comerciales
-              * Términos y Condiciones: para uso general del ecosistema (Red Futura y Tu Guía AR)
-            
-            - Responde basándote en la información proporcionada de los documentos
-            - Sé preciso y cita las cláusulas o secciones relevantes cuando sea apropiado
-            - Si un tema aplica a múltiples documentos, menciona las diferencias o complementos
-            - Si no sabes algo que no está en los documentos, admítelo honestamente
-            - Puedes mencionar información de contacto: contacto@redesfutura.com, +54 2901 308735
-
-            Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.""",
+            IMPORTANTE:
+            - Para preguntas simples de saludo ("hola", "quién eres"), responde directamente sin buscar.
+            - Para CUALQUIER pregunta sobre el servicio o contratos, USA LA HERRAMIENTA DE BÚSQUEDA.""",
         },
     ]
 
@@ -266,7 +301,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente del Ecosistema Red Futura (Red Futura y Tu Guía AR). Menciona que puedes ayudar con información de contratos, términos y condiciones, y crear usuarios."})
+        messages.append({"role": "system", "content": "Saluda y preséntate como el asistente inteligente de Red Futura. Menciona que puedes ayudar con dudas sobre contratos, servicios o crear cuentas de usuario."})
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
