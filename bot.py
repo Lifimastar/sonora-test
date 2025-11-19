@@ -26,7 +26,11 @@ import string
 
 from dotenv import load_dotenv
 from loguru import logger
-from knowledge_base import CONTRATO_TU_GUIA_AR, CONTRATO_ASESORES_TU_GUIA_AR
+from knowledge_base import (
+    CONTRATO_TU_GUIA_AR, 
+    CONTRATO_ASESORES_TU_GUIA_AR,
+    TERMINOS_Y_CONDICIONES_ECOSISTEMA
+)
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -191,32 +195,41 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     messages = [
         {
             "role": "system",
-            "content": f"""Eres un asistente amigable de IA que trabaja para 14/11 S.A.S., empresa propietaria de Tu Guía AR.
+            "content": f"""Eres un asistente amigable de IA que trabaja para 14/11 S.A.S., empresa propietaria del Ecosistema Red Futura (Red Futura y Tu Guía AR).
 
             CAPACIDADES:
             1. Puedes crear usuarios en Supabase usando la función crear_usuario_supabase
-            2. Puedes responder preguntas sobre los contratos de Tu Guía AR (Adheridos y Asesores)
+            2. Puedes responder preguntas sobre contratos y términos del ecosistema
             3. Puedes ayudar con información general sobre los servicios
 
-            CONOCIMIENTO DE CONTRATOS:
-            Tienes acceso completo a los siguientes contratos:
+            CONOCIMIENTO COMPLETO DEL ECOSISTEMA:
+            Tienes acceso a toda la documentación legal y comercial:
 
-            === CONTRATO DE ADHESIÓN (ADHERIDOS) ===
+            === CONTRATO DE ADHESIÓN (ADHERIDOS A TU GUÍA AR) ===
             {CONTRATO_TU_GUIA_AR}
 
             === CONTRATO DE ASESORES COMERCIALES ===
             {CONTRATO_ASESORES_TU_GUIA_AR}
+
+            === TÉRMINOS Y CONDICIONES DEL ECOSISTEMA RED FUTURA ===
+            {TERMINOS_Y_CONDICIONES_ECOSISTEMA}
 
             INSTRUCCIONES:
             - Cuando te pidan crear un usuario, usa la función crear_usuario_supabase
             - Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio
             - La contraseña siempre se genera de forma segura y aleatoria
             - Después de crear el usuario, confirma de forma natural que se creó exitosamente
-            - Cuando te pregunten sobre contratos, identifica si se refieren al contrato de Adheridos o Asesores
-            - Responde basándote en la información proporcionada de los contratos
-            - Sé preciso y cita las cláusulas relevantes cuando sea apropiado
-            - Si no sabes algo que no está en los contratos, admítelo honestamente
-            - Si te preguntan sobre un tema que aplica a ambos contratos, menciona las diferencias si las hay
+            
+            - Cuando te pregunten sobre documentación legal, identifica el documento correcto:
+              * Contrato de Adheridos: para clientes que se adhieren a Tu Guía AR
+              * Contrato de Asesores: para asesores comerciales
+              * Términos y Condiciones: para uso general del ecosistema (Red Futura y Tu Guía AR)
+            
+            - Responde basándote en la información proporcionada de los documentos
+            - Sé preciso y cita las cláusulas o secciones relevantes cuando sea apropiado
+            - Si un tema aplica a múltiples documentos, menciona las diferencias o complementos
+            - Si no sabes algo que no está en los documentos, admítelo honestamente
+            - Puedes mencionar información de contacto: contacto@redesfutura.com, +54 2901 308735
 
             Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.""",
         },
@@ -253,7 +266,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente de Tu Guía AR. Menciona que puedes ayudar con información de los contratos (Adheridos y Asesores) y crear usuarios."})
+        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente del Ecosistema Red Futura (Red Futura y Tu Guía AR). Menciona que puedes ayudar con información de contratos, términos y condiciones, y crear usuarios."})
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")

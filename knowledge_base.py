@@ -116,3 +116,79 @@ Ambas partes aceptan jurisdicción exclusiva de Ushuaia, Tierra del Fuego.
 16. ACEPTACIÓN FINAL
 EL ASESOR declara haber leído y aceptado este contrato mediante tilde y clic.
 """
+
+# tercer archivo
+# Términos y Condiciones del Ecosistema
+TERMINOS_Y_CONDICIONES_ECOSISTEMA = """
+TÉRMINOS Y CONDICIONES DE USO – 14/11 S.A.S. (ECOSISTEMA RED FUTURA / TU GUÍA AR by RED FUTURA)
+Ushuaia, ____ de __________ de 2025
+
+1. TITULARIDAD Y ACEPTACIÓN
+El presente documento regula el uso de los sitios, plataformas y servicios digitales integrados bajo el Ecosistema Red Futura,
+titularidad de 14/11 S.A.S., CUIT 30-71914925-8, con domicilio legal en Calle Formosa 600, 3°K, Ushuaia, Provincia de Tierra del Fuego,
+Antártida e Islas del Atlántico Sur, Argentina (en adelante, "14/11 S.A.S.").
+El uso o acceso a cualquiera de los servicios ofrecidos implica la aceptación plena de los presentes Términos y Condiciones.
+
+2. OBJETO Y ALCANCE
+Los presentes Términos y Condiciones tienen por objeto regular el acceso, uso y funcionamiento de las plataformas digitales
+integradas bajo el Ecosistema Red Futura, que incluye las marcas y sitios:
+- RED FUTURA: destinada a la promoción digital de empresas, servicios relacionados, inmobiliarias, concesionarias, aseguradoras, entre otros.
+- TU GUÍA AR by RED FUTURA: destinada a profesionales, comerciantes y emprendedores independientes.
+Ambas plataformas forman parte de un mismo sistema administrado por 14/11 S.A.S. bajo el régimen de promoción establecido por la Ley Nacional N.º 19.640.
+
+3. REGISTRO Y ADHESIÓN
+La adhesión a los servicios ofrecidos por 14/11 S.A.S. se formaliza mediante la aceptación digital (firma con tilde)
+conforme a la Ley N.º 25.506 de Firma Digital. Los precios, bonificaciones y beneficios aplicables se rigen por las Políticas Comerciales y de Pagos
+vigentes publicadas en los sitios oficiales www.redesfutura.com y www.tuguiaar.com.
+
+4. SERVICIOS AUTOMATIZADOS
+14/11 S.A.S. provee servicios de difusión digital automatizada mediante sistemas de inteligencia artificial (IA),
+que incluyen la creación, programación y publicación de contenidos digitales (textos, imágenes, videos, voces sintéticas y otros formatos)
+en redes sociales y medios digitales. Los servicios podrán variar según el plan contratado y la plataforma correspondiente.
+
+5. PUBLICACIONES Y CONTENIDOS
+El usuario (en adelante, "EL ADHERENTE") autoriza expresamente a 14/11 S.A.S. a utilizar su nombre comercial, logotipo,
+imágenes y datos de contacto con fines de promoción digital dentro del Ecosistema Red Futura.
+14/11 S.A.S. se reserva el derecho de editar, suspender o eliminar cualquier contenido que infrinja normas legales, políticas internas,
+o que pueda afectar la imagen institucional de las marcas.
+
+6. PROPIEDAD INTELECTUAL
+Todos los sistemas, software, bases de datos, diseños, logos, marcas, textos, imágenes, videos y demás contenidos generados
+o utilizados en las plataformas son propiedad exclusiva de 14/11 S.A.S. y se encuentran protegidos por las leyes de propiedad intelectual argentinas.
+Se prohíbe expresamente la reproducción, copia, modificación o distribución no autorizada del contenido.
+
+7. CONDUCTAS PROHIBIDAS
+El usuario no podrá, bajo ningún concepto:
+a) Publicar contenido falso, ilícito, ofensivo o ajeno.
+b) Utilizar los servicios para fines fraudulentos o contrarios a la ley.
+c) Interferir o intentar alterar el funcionamiento de las plataformas.
+d) Usar marcas, nombres o logos de 14/11 S.A.S. sin autorización escrita.
+El incumplimiento de estas condiciones podrá derivar en la suspensión inmediata del servicio y acciones legales correspondientes.
+
+8. PROTECCIÓN DE DATOS PERSONALES
+14/11 S.A.S. cumple con la Ley N.º 25.326 de Protección de Datos Personales.
+Los datos recopilados se utilizan exclusivamente para la prestación y mejora de los servicios contratados.
+Los usuarios podrán ejercer sus derechos de acceso, rectificación o eliminación comunicándose a contacto@redesfutura.com.
+
+9. RESPONSABILIDAD Y LIMITACIÓN
+14/11 S.A.S. no garantiza resultados comerciales ni cantidad específica de contactos o ventas.
+La responsabilidad máxima de 14/11 S.A.S. frente al usuario se limita a la reposición o extensión del servicio afectado.
+No se realizan reembolsos salvo los expresamente previstos en las Políticas Comerciales y de Pagos.
+
+10. VIGENCIA Y MODIFICACIONES
+Los presentes Términos y Condiciones tienen vigencia indefinida.
+14/11 S.A.S. podrá modificarlos en cualquier momento, y dichas modificaciones entrarán en vigencia desde su publicación en los sitios oficiales.
+El uso continuado de los servicios implica la aceptación de los cambios realizados.
+
+11. JURISDICCIÓN Y LEY APLICABLE
+Las partes se someten a los tribunales ordinarios de Ushuaia, Provincia de Tierra del Fuego, A. e I.A.S.,
+conforme la legislación argentina vigente.
+
+12. CLÁUSULA FINAL – LEY 19.640
+Todos los servicios del Ecosistema Red Futura y Tu Guía AR by Red Futura se administran y gestionan
+desde la Provincia de Tierra del Fuego, bajo el régimen de promoción establecido por la Ley Nacional N.º 19.640.
+
+14/11 S.A.S. – Titular de las marcas Red Futura y Tu Guía AR by Red Futura
+Calle Formosa 600, 3°K, Ushuaia, Tierra del Fuego, A. e I.A.S.
+CUIT 30-71914925-8 | www.redesfutura.com | +54 2901 308735
+"""
