@@ -1,0 +1,208 @@
+{
+  "name": "Cerebro Sonora - Fixed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "76614992-5231-42a6-bd97-1b524c819ad5",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -704,
+        -48
+      ],
+      "id": "1adb78c2-9a69-49df-98bc-003af083c754",
+      "name": "Trigger - Pipecat",
+      "webhookId": "76614992-5231-42a6-bd97-1b524c819ad5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un asistente que crea usuarios en Supabase. Tu única función es extraer el email y password del mensaje del usuario y llamar a la herramienta crear_usuario.\n\nCuando el usuario te pida crear un usuario, extrae:\n- email: la dirección de correo electrónico\n- password: la contraseña\n\nLuego llama INMEDIATAMENTE a la herramienta crear_usuario con esos datos.\n\nMensaje del usuario: {{ $json.body.pregunta }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        -48
+      ],
+      "id": "c368907a-e56b-4b7d-93f7-55fb41b77934",
+      "name": "Agent - Crear Usuario"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        176
+      ],
+      "id": "db03fb27-a725-4a73-b91c-275e8383d95e",
+      "name": "Model – OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "VA7DBTbvR7bCAaM1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        96,
+        -48
+      ],
+      "id": "4a034a58-0af9-4b28-936d-7381d8e1910c",
+      "name": "Respond – Pipecat"
+    },
+    {
+      "parameters": {
+        "toolDescription": "=crea usuario en supabase tomando el email y password de {{ $('Trigger - Pipecat').item.json.body.pregunta }}",
+        "method": "POST",
+        "url": "https://cxjusqukuihzjpihgnms.supabase.co/auth/v1/admin/users",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -352,
+        176
+      ],
+      "id": "8b37f055-05d8-4be9-8855-94ccc35017d3",
+      "name": "crear_usuario",
+      "credentials": {
+        "supabaseApi": {
+          "id": "MpjbHOop12XoCSWE",
+          "name": "enrique-supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response-field",
+              "name": "respuesta",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "success-field",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        -48
+      ],
+      "id": "12719e72-cdd3-4a20-88f8-437af431b23e",
+      "name": "Formatear Respuesta"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger - Pipecat": {
+      "main": [
+        [
+          {
+            "node": "Agent - Crear Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent - Crear Usuario": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Model – OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent - Crear Usuario",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_usuario": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent - Crear Usuario",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Respond – Pipecat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8c2bf044-eed3-4991-b6ba-173361f23a60",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7bf43cd6370067743a2700236d523d8dce4c994919b4183770d78e89dfbff718"
+  },
+  "id": "CLBvjUBB9bCWLRiq",
+  "tags": []
+}

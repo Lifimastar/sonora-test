@@ -20,6 +20,9 @@ Run the bot using::
 """
 
 import os
+import aiohttp
+import secrets
+import string
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -40,6 +43,8 @@ from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.frames.frames import LLMRunFrame
 
 logger.info("Loading pipeline components...")
+
+from pipecat.adapters.schemas.tools_schema import ToolsSchema
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -50,6 +55,7 @@ from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.cartesia.tts import CartesiaTTSService
 from pipecat.services.deepgram.stt import DeepgramSTTService, LiveOptions
+from pipecat.services.llm_service import FunctionCallParams
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transcriptions.language import Language
 from pipecat.transports.base_transport import BaseTransport, TransportParams
@@ -57,6 +63,82 @@ from pipecat.transports.base_transport import BaseTransport, TransportParams
 logger.info("✅ All components loaded successfully!")
 
 load_dotenv(override=True)
+
+def generar_password_segura(longitud=16):
+    """Genera una contrasena segura aleatoria."""
+    caracteres = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(secrets.choice(caracteres) for _ in range(longitud))
+    return password
+
+async def crear_usuario_supabase(params: FunctionCallParams):
+    """Crea un usuario en Supabase a través del webhook de n8n.
+    
+    Esta función crea un nuevo usuario en Supabase. Puede generar email y password 
+    aleatorios o usar los proporcionados por el usuario.
+    
+    Args:
+        params: Parámetros de la llamada a función que contiene:
+            - email (opcional): Email del usuario. Si no se proporciona, se genera uno 
+              aleatorio con formato usuario_XXXXXXXX@sonora.com
+            - password (opcional): Contraseña del usuario. Si no se proporciona, se 
+              genera una contraseña segura aleatoria.
+    
+    Returns:
+        Un diccionario con el resultado de la creación del usuario.
+    """
+    try:
+        # extraer argumentos del LLM
+        email = params.arguments.get("email", None)
+        password = params.arguments.get("password", None)
+
+        # generar email aleatorio si no se proporciona
+        if not email:
+            random_id = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+            email = f"usuario_{random_id}@sonora.com"
+        
+        # generar contrasena segura si no se proporciona
+        if not password:
+            password = generar_password_segura()
+        
+        # URL del webhook de n8n
+        webhook_url = os.getenv("N8N_WEBHOOK_URL")
+
+        # preparar el mensaje para n8n
+        mensaje = f"crear usuario con email {email} y password {password}"
+
+        # llamar al webhook
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                webhook_url,
+                json={"pregunta": mensaje},
+                headers={"Content-Type": "application/json"}
+            ) as response:
+                if response.status == 200:
+                    resultado = await response.json()
+
+                    # preparar respuesta exitosa
+                    respuesta = {
+                        "success": True,
+                        "email": email,
+                        "password": password,
+                        "mensaje": f"Usuario {email} creado exitosamente.",
+                        "respuesta_n8n": resultado.get("respuesta", "")
+                    }
+                else:
+                    respuesta = {
+                        "success": False,
+                        "error": f"Error al crear usuario: HTTP {response.status}"
+                    }
+        
+        # devuelve el resultado al LLM
+        await params.result_callback(respuesta)
+
+    except Exception as e:
+        # manejar errores
+        await params.result_callback({
+            "success": False,
+            "error": f"Error al crear usuario: {str(e)}"
+        })
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
@@ -88,14 +170,33 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
 
+    # crear el esquima de herramientas pasando la funcion directamente
+    tools = ToolsSchema(standard_tools=[crear_usuario_supabase])
+
+    # registrar la funcion en el LLM
+    llm.register_function(
+        "crear_usuario_supabase",
+        crear_usuario_supabase,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
+
     messages = [
         {
             "role": "system",
-            "content": "Eres un asistente amigable de IA. Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.",
+            "content": """Eres un asistente amigable de IA que puede crear usuarios en Supabase. 
+        
+            Cuando el usuario te pida crear un usuario, debes:
+            1. Usar la función crear_usuario_supabase
+            2. Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio.
+            3. La contraseña siempre se genera de forma segura y aleatoria.
+            4. Después de crear el usuario, confirma al usuario de forma natural que se creó exitosamente.
+
+            Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.""",
         },
     ]
 
-    context = LLMContext(messages)
+    context = LLMContext(messages, tools=tools)
     context_aggregator = LLMContextAggregatorPair(context)
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
