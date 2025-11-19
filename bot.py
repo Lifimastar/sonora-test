@@ -26,6 +26,7 @@ import string
 
 from dotenv import load_dotenv
 from loguru import logger
+from knowledge_base import CONTRATO_TU_GUIA_AR
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -57,6 +58,7 @@ from pipecat.services.cartesia.tts import CartesiaTTSService
 from pipecat.services.deepgram.stt import DeepgramSTTService, LiveOptions
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.services.openai.llm import OpenAILLMService
+from pipecat.services.openai.tts import OpenAITTSService
 from pipecat.transcriptions.language import Language
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 
@@ -158,14 +160,19 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         live_options=live_options,
     )
 
-    tts = CartesiaTTSService(
-        api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1",
-        model="sonic-2",
-        params=CartesiaTTSService.InputParams(
-            language=Language.ES,
-            speed="normal",
-        ),
+    # tts = CartesiaTTSService(
+    #     api_key=os.getenv("CARTESIA_API_KEY"),
+    #     voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1",
+    #     model="sonic-2",
+    #     params=CartesiaTTSService.InputParams(
+    #         language=Language.ES,
+    #         speed="normal",
+    #     ),
+    # )
+
+    tts = OpenAITTSService(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        voice="nova",
     )
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
@@ -184,13 +191,26 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     messages = [
         {
             "role": "system",
-            "content": """Eres un asistente amigable de IA que puede crear usuarios en Supabase. 
-        
-            Cuando el usuario te pida crear un usuario, debes:
-            1. Usar la función crear_usuario_supabase
-            2. Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio.
-            3. La contraseña siempre se genera de forma segura y aleatoria.
-            4. Después de crear el usuario, confirma al usuario de forma natural que se creó exitosamente.
+            "content": f"""Eres un asistente amigable de IA que trabaja para 14/11 S.A.S., empresa propietaria de Tu Guía AR.
+
+            CAPACIDADES:
+            1. Puedes crear usuarios en Supabase usando la función crear_usuario_supabase
+            2. Puedes responder preguntas sobre el contrato de adhesión de Tu Guía AR
+            3. Puedes ayudar con información general sobre los servicios
+
+            CONOCIMIENTO DEL CONTRATO:
+            Tienes acceso completo al siguiente contrato de adhesión:
+
+            {CONTRATO_TU_GUIA_AR}
+
+            INSTRUCCIONES:
+            - Cuando te pidan crear un usuario, usa la función crear_usuario_supabase
+            - Si el usuario proporciona un email específico, úsalo. Si no, la función generará uno aleatorio
+            - La contraseña siempre se genera de forma segura y aleatoria
+            - Después de crear el usuario, confirma de forma natural que se creó exitosamente
+            - Cuando te pregunten sobre el contrato, responde basándote en la información proporcionada
+            - Sé preciso y cita las cláusulas relevantes cuando sea apropiado
+            - Si no sabes algo que no está en el contrato, admítelo honestamente
 
             Responde de forma natural y mantén tus respuestas conversacionales. Siempre responde en español.""",
         },
@@ -227,7 +247,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Saluda y preséntate brevemente."})
+        messages.append({"role": "system", "content": "Saluda y preséntate brevemente como asistente de Tu Guía AR. Menciona que puedes ayudar con información del contrato y crear usuarios."})
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
