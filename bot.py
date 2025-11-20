@@ -19,12 +19,14 @@ Run the bot using::
     uv run bot.py
 """
 
-import os
 import aiohttp
+import os
 import secrets
 import string
 
+from conversation_logger import UserLogger, AssistantLogger
 from dotenv import load_dotenv
+from database_service import DatabaseService
 from loguru import logger
 from rag_service import get_relevant_context
 
@@ -189,6 +191,14 @@ async def buscar_informacion(params: FunctionCallParams):
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
+    # inicializar db y crear conversacion
+    db_service = DatabaseService()
+    conversation_id = db_service.create_conversation(title="Llamada Pipecat")
+
+    # crear el logger
+    user_logger = UserLogger(db_service)
+    assistant_logger = AssistantLogger(db_service)
+
     # STT en espanol
     live_options = LiveOptions(
         model="nova-2",
@@ -277,14 +287,16 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     pipeline = Pipeline(
         [
-            transport.input(),  # Transport user input
+            transport.input(),  # Microfono
             rtvi,  # RTVI processor
-            stt,
-            context_aggregator.user(),  # User responses
-            llm,  # LLM
-            tts,  # TTS
-            transport.output(),  # Transport bot output
-            context_aggregator.assistant(),  # Assistant spoken responses
+            stt, # Audio -> Texto (User)
+            user_logger, # capturar user
+            context_aggregator.user(),  # Agregar user al contexto
+            llm,  # Contexto -> Texto (Assistant)
+            assistant_logger, # capturar asistente
+            tts,  # Texto -> Audio
+            transport.output(),  # Altavoz
+            context_aggregator.assistant(),  # Agrega assistant al contexto
         ]
     )
 
