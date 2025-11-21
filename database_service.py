@@ -15,16 +15,21 @@ class DatabaseService:
         self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.conversation_id = None
     
-    def create_conversation(self, title: str = "Nueva conversacion"):
+    def create_conversation(self, title: str = "Nueva conversacion", user_id: str = None):
         """Crea una nueva sesion de conversacion"""
         data = {
             "title": title,
             "metadata": {"source": "pipecat_bot"}
         }
+
+        if user_id:
+            data["user_id"] = user_id
+
         response = self.client.table("conversations").insert(data).execute()
+
         if response.data:
             self.conversation_id = response.data[0]['id']
-            print(f"📝 Conversacion iniciada: {self.conversation_id}")
+            print(f"📝 Conversacion iniciada: {self.conversation_id} (Usuario: {user_id})")
             return self.conversation_id
         return None
     

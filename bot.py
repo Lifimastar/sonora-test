@@ -193,7 +193,12 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     # inicializar db y crear conversacion
     db_service = DatabaseService()
-    conversation_id = db_service.create_conversation(title="Llamada Pipecat")
+
+    TEST_USER_ID = os.getenv("TEST_USER_ID")
+
+    conversation_id = db_service.create_conversation(
+        title="Llamada Pipecat con Usuario",
+        user_id=TEST_USER_ID)
 
     # crear el logger
     user_logger = UserLogger(db_service)
