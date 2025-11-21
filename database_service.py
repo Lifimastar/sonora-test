@@ -14,6 +14,7 @@ class DatabaseService:
     def __init__(self):
         self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.conversation_id = None
+        self.user_id = None
     
     def create_conversation(self, title: str = "Nueva conversacion", user_id: str = None):
         """Crea una nueva sesion de conversacion"""
@@ -36,7 +37,8 @@ class DatabaseService:
     def add_message(self, role: str, content: str):
         """Guarda un mensaje en la conversacion actual"""
         if not self.conversation_id:
-            print("⚠️ No hay conversacion activa para guardar el mensaje")
+            print("⚠️ No hay conversacion activa. Creando una nueva automaticamente...")
+            self.create_conversation(title="Conversacion Automatica", user_id=self.user_id)
             return
         
         data = {
@@ -58,3 +60,13 @@ class DatabaseService:
         response = self.client.table("messages").select("*").eq("conversation_id", self.conversation_id).order("created_at", desc=False).limit(limit).execute()
 
         return response.data
+    
+    def get_conversation_history(self, conversation_id: str):
+        """Recupera el historial formateado para el LLM"""
+        try:
+            response = self.client.table("messages").select("role, content").eq("conversation_id", conversation_id).is_("deleted_at", "null").order("created_at").execute()
+
+            return response.data if response.data else []
+        except Exception as e:
+            print(f"❌ Error recuperando historial: {e}")
+            return []

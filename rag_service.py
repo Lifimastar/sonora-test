@@ -86,14 +86,13 @@ def get_relevant_context(query: str) -> str:
     Función principal para obtener contexto relevante.
     """
     # Buscar documentos relevantes
-    # BAJAMOS EL UMBRAL DE 0.75 A 0.5
-    results = search_knowledge_base(query, match_threshold=0.5, match_count=5)
+    # BAJAMOS EL UMBRAL A 0.3 PARA MAYOR RECALL
+    results = search_knowledge_base(query, match_threshold=0.3, match_count=6)
     
     # Formatear para el LLM
     context = format_context_for_llm(results)
     
     return context
-
 # Función de prueba
 if __name__ == "__main__":
     # Prueba el servicio RAG
