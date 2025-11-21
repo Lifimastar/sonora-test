@@ -53,7 +53,7 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
-from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
+from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor, RTVIAction
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.cartesia.tts import CartesiaTTSService
@@ -147,7 +147,10 @@ async def crear_usuario_supabase(params: FunctionCallParams):
 
 async def buscar_informacion(params: FunctionCallParams):
     """
-    Busca información relevante en la base de conocimiento sobre contratos, términos y servicios.
+    Busca información relevante en la base de conocimiento.
+    
+    IMPORTANTE: Debes proporcionar el argumento 'query' con la pregunta específica.
+    Ejemplo: buscar_informacion(query="¿Cuáles son las obligaciones del adherido?")
     
     Usa esta función SIEMPRE que el usuario pregunte sobre:
     - Contratos (adheridos o asesores)
@@ -155,7 +158,7 @@ async def buscar_informacion(params: FunctionCallParams):
     - Servicios, obligaciones, derechos o prohibiciones
     - Información de contacto o legal
     
-    :param params: Parámetros de la llamada, debe incluir 'query' en los argumentos.
+    :param params: Parámetros de la llamada. DEBE incluir 'query'.
     """
     try:
         # Extraer la pregunta o tema de búsqueda
@@ -165,7 +168,7 @@ async def buscar_informacion(params: FunctionCallParams):
             # Si no hay query, intentar usar el último mensaje del usuario o pedir aclaración
             resultado = {
                 "success": False,
-                "mensaje": "No se especificó qué buscar."
+                "mensaje": "Error: No se especificó qué buscar. Por favor llama a la función con el argumento 'query'."
             }
         else:
             logger.info(f"🔍 Buscando en RAG: {query}")
@@ -191,14 +194,15 @@ async def buscar_informacion(params: FunctionCallParams):
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    # inicializar db y crear conversacion
+    # inicializar db
     db_service = DatabaseService()
 
     TEST_USER_ID = os.getenv("TEST_USER_ID")
+    db_service.user_id = TEST_USER_ID
 
-    conversation_id = db_service.create_conversation(
-        title="Llamada Pipecat con Usuario",
-        user_id=TEST_USER_ID)
+    # conversation_id = db_service.create_conversation(
+    #     title="Llamada Pipecat con Usuario",
+    #     user_id=TEST_USER_ID)
 
     # crear el logger
     user_logger = UserLogger(db_service)
@@ -218,22 +222,19 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         live_options=live_options,
     )
 
-    # tts = CartesiaTTSService(
-    #     api_key=os.getenv("CARTESIA_API_KEY"),
-    #     voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1",
-    #     model="sonic-2",
-    #     params=CartesiaTTSService.InputParams(
-    #         language=Language.ES,
-    #         speed="normal",
-    #     ),
-    # )
-
-    tts = OpenAITTSService(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        voice="nova",
+    tts = CartesiaTTSService(
+        api_key=os.getenv("CARTESIA_API_KEY"),
+        voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1", # Voz masculina mexicana amigable
+        model="sonic-multilingual", # Modelo optimizado para latencia y múltiples idiomas
     )
 
-    llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
+    # tts = OpenAITTSService(
+    #     api_key=os.getenv("OPENAI_API_KEY"),
+    #     voice="nova",
+    #     model="tts-1",
+    # )
+
+    llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o")
 
     # crear el esquima de herramientas pasando la funcion directamente
     tools = ToolsSchema(standard_tools=[
@@ -263,11 +264,18 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             "content": """Eres un asistente experto y amigable del Ecosistema Red Futura (que incluye Tu Guía AR).
 
             CAPACIDADES:
-            1. 🔍 BUSCAR INFORMACIÓN: Tienes acceso a una base de conocimiento completa con contratos, términos y condiciones.
+            1. 🧠 MEMORIA CONTEXTUAL: Tienes acceso al historial completo de la conversación.
+            - Si el usuario pregunta "¿de qué hablamos la última vez?" o "¿qué te dije?", REVISA EL HISTORIAL y responde con precisión.
+            - NO digas "no tengo memoria". SÍ la tienes en el contexto actual.
+
+            2. 🔍 BUSCAR INFORMACIÓN: Tienes acceso a una base de conocimiento completa con contratos, términos y condiciones.
             - Cuando te pregunten sobre reglas, servicios, obligaciones, contratos o términos legales, DEBES usar la función `buscar_informacion`.
+            - IMPORTANTE: SIEMPRE debes pasar el argumento `query` con lo que quieres buscar.
+            - Ejemplo: `buscar_informacion(query="obligaciones del adherido")`
+            - NUNCA llames a esta función sin argumentos.
             - NO inventes información legal. Búscala siempre.
 
-            2. 👤 CREAR USUARIOS: Puedes registrar nuevos usuarios en el sistema.
+            3. 👤 CREAR USUARIOS: Puedes registrar nuevos usuarios en el sistema.
             - Usa la función [crear_usuario_supabase](cci:1://file:///c:/Users/luisf/ProyectosPython/bot-sonora/pipecat-quickstart/bot.py:78:0-146:10).
             - Si no te dan un email, genera uno aleatorio.
             - Siempre genera contraseña segura.
@@ -278,6 +286,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - Si la búsqueda no arroja resultados, dilo honestamente y ofrece contactar a soporte (contacto@redesfutura.com).
             - Mantén un tono profesional pero cercano y amable.
             - Habla siempre en español.
+            - SÉ CONCISO. Respuestas cortas y directas son mejores para voz.
 
             IMPORTANTE:
             - Para preguntas simples de saludo ("hola", "quién eres"), responde directamente sin buscar.
@@ -288,7 +297,65 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     context = LLMContext(messages, tools=tools)
     context_aggregator = LLMContextAggregatorPair(context)
 
+    # definir la accion que ejecutara el handler
+    async def set_conversation_action(processor, service, arguments):
+        conversation_id = arguments.get("conversation_id")
+        logger.info(f"🔄 Configurando conversación: {conversation_id}")
+        
+        messages_to_send = []
+        
+        if conversation_id:
+            # CASO 1: Reanudar conversación existente
+            db_service.conversation_id = conversation_id
+            logger.info("✅ ID de conversación establecido.")
+            
+            # Cargar historial
+            history = db_service.get_conversation_history(conversation_id)
+            
+            if history:
+                logger.info(f"📜 Inyectando {len(history)} mensajes al contexto")
+                # Inyectar historial en el contexto del LLM
+                for msg in history:
+                    context.add_message({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+                
+                # Saludo de re-conexión
+                messages_to_send = [
+                    {"role": "system", "content": "El usuario ha vuelto. Saluda brevemente (ej: 'Hola de nuevo') y pregunta en qué quedaron."}
+                ]
+            else:
+                 messages_to_send = [{"role": "system", "content": "Saluda al usuario."}]
+
+        else:
+            # CASO 2: Nueva conversación
+            logger.info("✨ Iniciando nueva sesión.")
+            db_service.conversation_id = None # Asegurar que esté limpio
+            messages_to_send = [
+                {"role": "system", "content": "Saluda brevemente como asistente de Red Futura."}
+            ]
+
+        # Disparar el saludo AHORA
+        if messages_to_send:
+            logger.info(f"📨 Enviando instrucciones al LLM: {messages_to_send}")
+            for msg in messages_to_send:
+                context.add_message(msg)
+            await task.queue_frame(LLMRunFrame())
+        
+        return True
+
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
+    
+    action = RTVIAction(
+        service="system",
+        action="set_conversation_id",
+        name="set_conversation_id",
+        handler=set_conversation_action,
+        result="bool"
+    )
+
+    rtvi.register_action(action)
 
     pipeline = Pipeline(
         [
@@ -316,10 +383,29 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
-        logger.info(f"Client connected")
-        # Kick off the conversation.
-        messages.append({"role": "system", "content": "Saluda y preséntate como el asistente inteligente de Red Futura. Menciona que puedes ayudar con dudas sobre contratos, servicios o crear cuentas de usuario."})
-        await task.queue_frames([LLMRunFrame()])
+        logger.info(f"Client connected. Waiting for conversation config...")
+        # NO enviamos mensajes aquí. Esperamos la acción del frontend.
+
+    @transport.event_handler("on_app_message")
+    async def on_app_message(transport, message, sender):
+        logger.info(f"📨 App message received: {message}")
+        # Interceptar manualmente set_conversation_id si RTVI no lo pilla
+        # El formato suele ser: {'label': 'rtvi-ai', 'type': 'client-message', 'data': {'t': 'action', 'd': {'action': 'set_conversation_id', 'arguments': {...}}}}
+        try:
+            if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
+                data = message.get("data", {})
+                if data.get("t") == "action":
+                    action_data = data.get("d", {})
+                    if action_data.get("action") == "set_conversation_id":
+                        args = action_data.get("arguments", {})
+                        logger.info(f"⚡ Interceptado set_conversation_id manualmente: {args}")
+                        # Llamamos al handler directamente. 
+                        # Nota: set_conversation_action espera (processor, service, arguments)
+                        await set_conversation_action(None, None, args)
+        except Exception as e:
+            logger.error(f"Error processing app message: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
@@ -338,14 +424,12 @@ async def bot(runner_args: RunnerArguments):
         "daily": lambda: DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-            turn_analyzer=LocalSmartTurnAnalyzerV3(),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.4)),
         ),
         "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-            turn_analyzer=LocalSmartTurnAnalyzerV3(),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.4)),
         ),
     }
 
