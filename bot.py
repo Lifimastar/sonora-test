@@ -20,9 +20,11 @@ Run the bot using::
 """
 
 import aiohttp
+import datetime
 import os
 import secrets
 import string
+import time
 
 from conversation_logger import UserLogger, AssistantLogger
 from dotenv import load_dotenv
@@ -43,7 +45,7 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 logger.info("✅ Silero VAD model loaded")
 
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMRunFrame
+from pipecat.frames.frames import LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame
 
 logger.info("Loading pipeline components...")
 
@@ -389,9 +391,21 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     @transport.event_handler("on_app_message")
     async def on_app_message(transport, message, sender):
         logger.info(f"📨 App message received: {message}")
-        # Interceptar manualmente set_conversation_id si RTVI no lo pilla
-        # El formato suele ser: {'label': 'rtvi-ai', 'type': 'client-message', 'data': {'t': 'action', 'd': {'action': 'set_conversation_id', 'arguments': {...}}}}
         try:
+            # 1. Interceptar mensajes de texto del usuario
+            if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
+                data = message.get("data", {})
+                if data.get("t") == "user_text_message":
+                    text = data.get("d", {}).get("text")
+                    if text:
+                        logger.info(f"💬 Texto recibido del usuario: {text}")
+                        # Inyectar frames para simular un turno de usuario
+                        await task.queue_frame(UserStartedSpeakingFrame())
+                        await task.queue_frame(TranscriptionFrame(text=text, user_id="user", timestamp=datetime.datetime.now().isoformat()))
+                        await task.queue_frame(UserStoppedSpeakingFrame())
+                        return
+
+            # 2. Interceptar set_conversation_id
             if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
                 data = message.get("data", {})
                 if data.get("t") == "action":
@@ -399,8 +413,6 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                     if action_data.get("action") == "set_conversation_id":
                         args = action_data.get("arguments", {})
                         logger.info(f"⚡ Interceptado set_conversation_id manualmente: {args}")
-                        # Llamamos al handler directamente. 
-                        # Nota: set_conversation_action espera (processor, service, arguments)
                         await set_conversation_action(None, None, args)
         except Exception as e:
             logger.error(f"Error processing app message: {e}")
