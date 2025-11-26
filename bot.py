@@ -28,7 +28,7 @@ from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import crear_usuario_supabase, buscar_informacion
+from app.tools.definitions import crear_usuario_supabase, buscar_informacion, contar_usuarios, contar_usuarios_por_rubro
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -115,11 +115,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o")
 
-    # crear el esquima de herramientas pasando la funcion directamente
+    # crear el esquema de herramientas
     tools = ToolsSchema(standard_tools=[
         crear_usuario_supabase,
-        buscar_informacion
-        ])
+        buscar_informacion,
+        contar_usuarios,
+        contar_usuarios_por_rubro
+    ])
 
     # registrar la funcion de crear usuarios
     llm.register_function(
@@ -133,6 +135,22 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     llm.register_function(
         "buscar_informacion",
         buscar_informacion,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
+
+    # registrar la funcion de contar usuarios
+    llm.register_function(
+        "contar_usuarios",
+        contar_usuarios,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
+
+    # registrar la funcion de contar usuarios por rubro
+    llm.register_function(
+        "contar_usuarios_por_rubro",
+        contar_usuarios_por_rubro,
         start_callback=None,
         cancel_on_interruption=False
     )
@@ -155,9 +173,17 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - NO inventes información legal. Búscala siempre.
 
             3. 👤 CREAR USUARIOS: Puedes registrar nuevos usuarios en el sistema.
-            - Usa la función [crear_usuario_supabase](cci:1://file:///c:/Users/luisf/ProyectosPython/bot-sonora/pipecat-quickstart/bot.py:78:0-146:10).
+            - Usa la función `crear_usuario_supabase`.
+            - IMPORTANTE: El rubro es OBLIGATORIO. Si el usuario menciona su tipo de negocio (ej: "empresa de turismo", "restaurante", "hotel"), INFIERE el rubro de esa información.
+            - Rubros comunes: Turismo, Gastronomía, Hotelería, Comercio, Servicios, Salud, Educación, etc.
+            - Si no mencionan el tipo de negocio, pregunta: "¿A qué rubro pertenece tu empresa?"
             - Si no te dan un email, genera uno aleatorio.
             - Siempre genera contraseña segura.
+
+            4. 📊 CONTAR USUARIOS: Puedes decir cuántos usuarios hay registrados.
+            - Usa la función `contar_usuarios` cuando te pregunten "¿cuántos usuarios hay?" o similar.
+            - Usa la función `contar_usuarios_por_rubro` cuando pregunten por estadísticas por categoría, rubro, o tipo de negocio.
+            - Ejemplos: "¿Cuántos usuarios de turismo hay?", "Dame estadísticas por rubro", "¿Qué categoría tiene más usuarios?"
 
             INSTRUCCIONES DE INTERACCIÓN:
             - Tu objetivo es ayudar y resolver dudas con precisión.
@@ -166,10 +192,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - Mantén un tono profesional pero cercano y amable.
             - Habla siempre en español.
             - SÉ CONCISO. Respuestas cortas y directas son mejores para voz.
-
-            IMPORTANTE:
-            - Para preguntas simples de saludo ("hola", "quién eres"), responde directamente sin buscar.
-            - Para CUALQUIER pregunta sobre el servicio o contratos, USA LA HERRAMIENTA DE BÚSQUEDA.""",
+            
+            🚨 REGLAS DE FORMATO (MUY IMPORTANTE):
+            - ESTÁS HABLANDO, NO ESCRIBIENDO.
+            - NO uses símbolos de markdown como asteriscos (*), guiones (-) o numerales (#).
+            - NO uses listas con viñetas. Usa conectores naturales como "primero", "además", "por último".
+            - NO digas "asterisco" ni leas puntuación extraña.
+            - Escribe los números en texto si son cortos (ej: "cinco" en vez de "5").""",
         },
     ]
 
