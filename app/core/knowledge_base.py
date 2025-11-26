@@ -304,10 +304,10 @@ Su función principal es recordar información sobre la visita para facilitar la
 
 3. TIPOS DE COOKIES UTILIZADAS
 EL ECOSISTEMA utiliza los siguientes tipos de cookies:
-a) **Cookies técnicas:** necesarias para el funcionamiento básico del sitio y permitir la navegación y el uso de sus funciones esenciales.
-b) **Cookies analíticas:** permiten medir y analizar el comportamiento de los usuarios para mejorar los servicios ofrecidos.
-c) **Cookies de personalización:** almacenan preferencias como idioma, zona horaria o configuración de interfaz.
-d) **Cookies publicitarias o de marketing:** gestionan de forma más eficaz los espacios publicitarios y permiten mostrar anuncios personalizados.
+a) Cookies técnicas: necesarias para el funcionamiento básico del sitio y permitir la navegación y el uso de sus funciones esenciales.
+b) Cookies analíticas: permiten medir y analizar el comportamiento de los usuarios para mejorar los servicios ofrecidos.
+c) Cookies de personalización: almacenan preferencias como idioma, zona horaria o configuración de interfaz.
+d) Cookies publicitarias o de marketing: gestionan de forma más eficaz los espacios publicitarios y permiten mostrar anuncios personalizados.
 
 
 4. USO DE COOKIES DE TERCEROS
@@ -323,16 +323,16 @@ El usuario puede configurar, rechazar o eliminar las cookies desde el banner ini
 
 6. DURACIÓN Y CONSERVACIÓN
 Las cookies pueden ser:
-- **De sesión:** se eliminan automáticamente al cerrar el navegador.
-- **Persistentes:** permanecen almacenadas hasta que el usuario las elimine manualmente o caduquen según su configuración.
+- De sesión: se eliminan automáticamente al cerrar el navegador.
+- Persistentes: permanecen almacenadas hasta que el usuario las elimine manualmente o caduquen según su configuración.
 
 
 7. CÓMO ELIMINAR O DESHABILITAR COOKIES
 El usuario puede permitir, bloquear o eliminar las cookies instaladas en su dispositivo mediante la configuración del navegador que utilice:
-- **Google Chrome:** Configuración > Privacidad y seguridad > Cookies y otros datos de sitios.
-- **Mozilla Firefox:** Opciones > Privacidad y seguridad > Cookies y datos del sitio.
-- **Safari:** Preferencias > Privacidad > Gestionar datos de sitios web.
-- **Microsoft Edge:** Configuración > Privacidad, búsqueda y servicios > Cookies y datos del sitio.
+- Google Chrome: Configuración > Privacidad y seguridad > Cookies y otros datos de sitios.
+- Mozilla Firefox: Opciones > Privacidad y seguridad > Cookies y datos del sitio.
+- Safari: Preferencias > Privacidad > Gestionar datos de sitios web.
+- Microsoft Edge: Configuración > Privacidad, búsqueda y servicios > Cookies y datos del sitio.
 
 
 8. ACTUALIZACIONES DE LA POLÍTICA
@@ -378,17 +378,17 @@ a través de la inteligencia artificial, la innovación tecnológica y el desarr
 
 4. NUESTROS VALORES
 14/11 S.A.S. se rige por los siguientes valores:
-- **Innovación:** aplicamos tecnología y automatización para simplificar procesos.
-- **Confianza:** operamos con transparencia y respaldo legal.
-- **Compromiso:** acompañamos el crecimiento de cada cliente.
-- **Desarrollo local:** fomentamos la expansión digital desde Tierra del Fuego al resto del país.
-- **Excelencia:** buscamos mejorar continuamente la calidad de nuestros servicios.
+- Innovación: aplicamos tecnología y automatización para simplificar procesos.
+- Confianza: operamos con transparencia y respaldo legal.
+- Compromiso: acompañamos el crecimiento de cada cliente.
+- Desarrollo local: fomentamos la expansión digital desde Tierra del Fuego al resto del país.
+- Excelencia: buscamos mejorar continuamente la calidad de nuestros servicios.
 
 
 5. QUÉ HACEMOS
 A través del Ecosistema Red Futura, 14/11 S.A.S. desarrolla y gestiona plataformas digitales integradas:
-- **Red Futura:** orientada a empresas, agencias, inmobiliarias, concesionarias, aseguradoras y servicios relacionados.
-- **Tu Guía AR by Red Futura:** orientada a profesionales, comerciantes y emprendedores que desean potenciar su presencia digital.
+- Red Futura: orientada a empresas, agencias, inmobiliarias, concesionarias, aseguradoras y servicios relacionados.
+- Tu Guía AR by Red Futura: orientada a profesionales, comerciantes y emprendedores que desean potenciar su presencia digital.
 Ambos proyectos ofrecen servicios de difusión automatizada, gestión inteligente y herramientas IA aplicadas al marketing y la comunicación.
 
 
