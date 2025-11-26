@@ -103,7 +103,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="15d0c2e2-8d29-44c3-be23-d585d5f154a1", # Voz masculina mexicana amigable
+        voice_id="5c5ad5e7-1020-476b-8b91-fdcbe9cc313c", # Voz femenina mexicana amigable
         model="sonic-multilingual", # Modelo optimizado para latencia y múltiples idiomas
     )
 
