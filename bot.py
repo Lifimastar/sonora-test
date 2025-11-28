@@ -28,7 +28,7 @@ from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import crear_usuario_supabase, buscar_informacion, contar_usuarios, contar_usuarios_por_rubro
+from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -117,19 +117,10 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     # crear el esquema de herramientas
     tools = ToolsSchema(standard_tools=[
-        crear_usuario_supabase,
         buscar_informacion,
-        contar_usuarios,
-        contar_usuarios_por_rubro
+        contar_usuarios_tuguia,
+        crear_usuario_tuguia
     ])
-
-    # registrar la funcion de crear usuarios
-    llm.register_function(
-        "crear_usuario_supabase",
-        crear_usuario_supabase,
-        start_callback=None,
-        cancel_on_interruption=False
-    )
 
     # registrar la funcion de busqueda 
     llm.register_function(
@@ -139,21 +130,21 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         cancel_on_interruption=False
     )
 
-    # registrar la funcion de contar usuarios
+    # registrar la funcion de contar usuarios de Tu Guia
     llm.register_function(
-        "contar_usuarios",
-        contar_usuarios,
+        "contar_usuarios_tuguia",
+        contar_usuarios_tuguia,
         start_callback=None,
         cancel_on_interruption=False
     )
 
-    # registrar la funcion de contar usuarios por rubro
+    # registrar la funcion de crear usuarios en Tu Guía
     llm.register_function(
-        "contar_usuarios_por_rubro",
-        contar_usuarios_por_rubro,
+        "crear_usuario_tuguia",
+        crear_usuario_tuguia,
         start_callback=None,
         cancel_on_interruption=False
-    )
+)
 
     messages = [
         {
@@ -172,18 +163,12 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - NUNCA llames a esta función sin argumentos.
             - NO inventes información legal. Búscala siempre.
 
-            3. 👤 CREAR USUARIOS: Puedes registrar nuevos usuarios en el sistema.
-            - Usa la función `crear_usuario_supabase`.
-            - IMPORTANTE: El rubro es OBLIGATORIO. Si el usuario menciona su tipo de negocio (ej: "empresa de turismo", "restaurante", "hotel"), INFIERE el rubro de esa información.
-            - Rubros comunes: Turismo, Gastronomía, Hotelería, Comercio, Servicios, Salud, Educación, etc.
-            - Si no mencionan el tipo de negocio, pregunta: "¿A qué rubro pertenece tu empresa?"
-            - Si no te dan un email, genera uno aleatorio.
-            - Siempre genera contraseña segura.
-
-            4. 📊 CONTAR USUARIOS: Puedes decir cuántos usuarios hay registrados.
-            - Usa la función `contar_usuarios` cuando te pregunten "¿cuántos usuarios hay?" o similar.
-            - Usa la función `contar_usuarios_por_rubro` cuando pregunten por estadísticas por categoría, rubro, o tipo de negocio.
-            - Ejemplos: "¿Cuántos usuarios de turismo hay?", "Dame estadísticas por rubro", "¿Qué categoría tiene más usuarios?"
+            3. 📊 SUARIOS TU GUÍA: Puedes contar usuarios de la base de datos de Tu Guía AR.
+            - Usa `contar_usuarios_tuguia` cuando pregunten por usuarios de Tu Guía.
+            - Usa `crear_usuario_tuguia` para crear nuevos usuarios.
+            - Campos obligatorios: email, password, first_name, last_name, phone, account_type
+            - Tipos de cuenta válidos: "personal", "business"
+            - Si el usuario no especifica datos, pregunta por los que faltan.
 
             INSTRUCCIONES DE INTERACCIÓN:
             - Tu objetivo es ayudar y resolver dudas con precisión.
