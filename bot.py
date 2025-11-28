@@ -28,7 +28,7 @@ from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia
+from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -119,7 +119,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     tools = ToolsSchema(standard_tools=[
         buscar_informacion,
         contar_usuarios_tuguia,
-        crear_usuario_tuguia
+        crear_usuario_tuguia,
+        contar_usuarios_por_subcategoria
     ])
 
     # registrar la funcion de busqueda 
@@ -144,7 +145,15 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         crear_usuario_tuguia,
         start_callback=None,
         cancel_on_interruption=False
-)
+    )
+
+    # registrar la funcion de contar usuarios por subcategoria
+    llm.register_function(
+        "contar_usuarios_por_subcategoria",
+        contar_usuarios_por_subcategoria,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
 
     messages = [
         {
@@ -164,7 +173,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - NO inventes información legal. Búscala siempre.
 
             3. 📊 SUARIOS TU GUÍA: Puedes contar usuarios de la base de datos de Tu Guía AR.
-            - Usa `contar_usuarios_tuguia` cuando pregunten por usuarios de Tu Guía.
+
+            - Usa `contar_usuarios_tuguia` para contar usuarios totales.
+            - Usa `contar_usuarios_por_subcategoria` para contar por subcategorias ESPECIFICAS.
+                - IMPORTANTE: SIEMPRE debes preguntar al usuario QUÉ subcategoría(s) le interesan.
+                - Acepta una o varias subcategorías: "Fotógrafos", ["Arquitectos", "Diseñadores"]
+                - NUNCA llames esta función sin el argumento `subcategory_names`.
+                - Si el usuario pregunta "cuántos usuarios hay por subcategoría" sin especificar cuál, pregúntale: "¿Qué subcategoría te interesa? Por ejemplo: Fotógrafos, Arquitectos, Médicos, etc."
             - Usa `crear_usuario_tuguia` para crear nuevos usuarios.
             - Campos obligatorios: email, password, first_name, last_name, phone, account_type
             - Tipos de cuenta válidos: "personal", "business"

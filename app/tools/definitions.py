@@ -138,3 +138,49 @@ async def crear_usuario_tuguia(params: FunctionCallParams):
             "success": False,
             "error": str(e)
         })
+
+async def contar_usuarios_por_subcategoria(params: FunctionCallParams):
+    """
+    Cuenta usuarios por subcategoria especifica en Tu Guia AR.
+
+    Args:
+        subcategory_names: Esta funcion REQUIERE que se especifiquen subcategorias.
+    """
+    try:
+        logger.info("Contando usuarios por subcategoria...")
+
+        args = params.arguments
+        subcategory_names = args.get("subcategory_names", None)
+
+        # Validar que se proporcionaron subcategorias
+        if not subcategory_names:
+            await params.result_callback({
+                "success": False,
+                "error": "Debes especificar al menos una subcategoria. Pregunta al usuario que subcategoria le interesa."
+            })
+            return
+
+        tuguia_db = TuGuiaDatabase()
+        result = tuguia_db.count_users_by_subcategory(subcategory_names)
+
+        if result["success"]:
+            # formatear mensaje
+            mensajes = []
+            for nombre, info in result['results'].items():
+                if info['found']:
+                    mensajes.append(f"{nombre}: {info['count']} usuarios")
+                else:
+                    mensajes.append(f"{nombre}: no encontrada")
+            mensaje = ". ".join(mensajes)
+        else:
+            mensaje = f"Error: {result['error']}"
+        
+        result["mensaje"] = mensaje
+        await params.result_callback(result)
+ 
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await params.result_callback({
+            "success": False,
+            "error": str(e)
+        })
