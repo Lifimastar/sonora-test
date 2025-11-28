@@ -78,3 +78,54 @@ class TuGuiaDatabase:
                 "error": str(e)
             }
 
+    def count_users_by_subcategory(self, subcategory_names):
+        """
+        Cuenta usuarios por subcategorias especificas
+
+        Args:
+            subcategory_names: Lista de nombres de subcategorias o un solo nombre (string)
+
+        Returns:
+            Dict con conteo por subcategoria
+        """
+        try:
+            # Convertir a lista si es un solo string
+            if isinstance(subcategory_names, str):
+                subcategory_names = [subcategory_names]
+            
+            results = {}
+            
+            for subcategory_name in subcategory_names:
+                # buscar subcategoria por nombre
+                subcategory_response = self.client.table('subcategories').select('id', 'name').ilike('name', f'%{subcategory_name}%').execute()
+
+                if not subcategory_response.data:
+                    results[subcategory_name] = {
+                        "found": False,
+                        "count": 0,
+                        "error": "No encontrada"
+                    }
+                    continue
+
+                # Tomar la primera coincidencia
+                subcat = subcategory_response.data[0]
+
+                # contar perfiles en esa subcategoria
+                count_response = self.client.table('profile_subcategories').select('profile_id', count='exact').eq('subcategory_id', subcat['id']).execute()
+
+                results[subcat['name']] = {
+                    "found": True,
+                    "count": count_response.count or 0
+                }
+            
+            return {
+                    "success": True,
+                    "results": results
+                }
+        
+        except Exception as e:
+            print(f"Error contando usuarios por subcategoria en Tu Guia: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
