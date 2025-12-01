@@ -1,4 +1,9 @@
-FROM dailyco/pipecat-base:latest
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
+
+# Install system dependencies (ffmpeg is often required for audio)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
@@ -14,3 +19,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy the application code
 COPY ./bot.py bot.py
+COPY ./app app
+
+# Command to run the bot
+CMD ["uv", "run", "bot.py", "--host", "0.0.0.0", "--port", "8765"]
