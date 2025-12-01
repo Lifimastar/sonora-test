@@ -10,7 +10,7 @@ def test_create_user():
     db = TuGuiaDatabase()
     result = db.create_user(
         email="test@tuguia.com",
-        password="Test123!@#",
+        password=os.environ.get("GENERIC_PASSWORD"),
         first_name="Juan",
         last_name="Pérez",
         phone="+54 11 1234 5678",
