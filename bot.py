@@ -56,7 +56,7 @@ from pipecat.processors.aggregators.llm_response_universal import LLMContextAggr
 from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor, RTVIAction
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
-from pipecat.services.cartesia.tts import CartesiaTTSService
+from pipecat.services.cartesia.tts import CartesiaTTSService, GenerationConfig
 from pipecat.services.deepgram.stt import DeepgramSTTService, LiveOptions
 from pipecat.services.llm_service import FunctionCallParams
 from pipecat.services.openai.llm import OpenAILLMService
@@ -103,8 +103,14 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="5c5ad5e7-1020-476b-8b91-fdcbe9cc313c", # Voz femenina mexicana amigable
-        model="sonic-multilingual", # Modelo optimizado para latencia y múltiples idiomas
+        voice_id="5c5ad5e7-1020-476b-8b91-fdcbe9cc313c", # Voz: Daniela (Mexicana/Latina)
+        model="sonic-multilingual",
+        params=CartesiaTTSService.InputParams(
+            generation_config=GenerationConfig(
+                emotion="positivity:high",
+                speed=1.0
+            )
+        ),
     )
 
     # tts = OpenAITTSService(
@@ -158,7 +164,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     messages = [
         {
             "role": "system",
-            "content": """Eres un asistente experto y amigable del Ecosistema Red Futura (que incluye Tu Guía AR).
+            "content": """Eres un asistente experto y amigable del Ecosistema Red Futura (que incluye Tu Guía Argentina).
 
             CAPACIDADES:
             1. 🧠 MEMORIA CONTEXTUAL: Tienes acceso al historial completo de la conversación.
@@ -172,7 +178,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             - NUNCA llames a esta función sin argumentos.
             - NO inventes información legal. Búscala siempre.
 
-            3. 📊 SUARIOS TU GUÍA: Puedes contar usuarios de la base de datos de Tu Guía AR.
+            3. 📊 SUARIOS TU GUÍA: Puedes contar usuarios de la base de datos de Tu Guía Argentina.
 
             - Usa `contar_usuarios_tuguia` para contar usuarios totales.
             - Usa `contar_usuarios_por_subcategoria` para contar por subcategorias ESPECIFICAS.
@@ -342,12 +348,12 @@ async def bot(runner_args: RunnerArguments):
         "daily": lambda: DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.4)),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.8)),
         ),
         "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.4)),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.8)),
         ),
     }
 
