@@ -94,7 +94,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         language=Language.ES_419,
         interim_results=True,
         smart_format=True,
-        punctuate=True
+        punctuate=True,
+        encoding="linear16",
+        sample_rate=16000,
     )
 
     stt = DeepgramSTTService(
@@ -265,8 +267,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     task = PipelineTask(
         pipeline,
         params=PipelineParams(
+            allow_interruptions=True,
             enable_metrics=True,
             enable_usage_metrics=True,
+            audio_in_sample_rate=16000, 
+            audio_out_sample_rate=24000,
         ),
         observers=[RTVIObserver(rtvi)],
     )
@@ -320,16 +325,28 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
 
+    vad_params = VADParams(
+        confidence=0.7,
+        start_secs=0.2,
+        stop_secs=0.4,
+        min_volume=0.6
+    )
+    vad_analyzer = SileroVADAnalyzer(params=vad_params)
+
     transport_params = {
         "daily": lambda: DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.8)),
+            vad_analyzer=vad_analyzer,
+            audio_in_sample_rate=16000,
+            audio_out_sample_rate=24000,
         ),
         "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.8)),
+            vad_analyzer=vad_analyzer,
+            audio_in_sample_rate=16000,
+            audio_out_sample_rate=24000,
         ),
     }
 
