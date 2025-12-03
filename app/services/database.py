@@ -102,3 +102,17 @@ class DatabaseService:
         except Exception as e:
             print(f"Error recuperando memorias: {e}")
             return {}
+        
+    def delete_memory(self, key: str):
+        """Borra un dato persistente del usuario actual"""
+        if not self.user_id:
+            print("⚠️ No se puede borrar memoria: user_id no definido")
+            return False
+            
+        try:
+            self.client.table("user_memory").delete().eq("user_id", self.user_id).eq("key", key).execute()
+            print(f"🗑️ Memoria borrada: {key}")
+            return True
+        except Exception as e:
+            print(f"❌ Error borrando memoria: {e}")
+            return False
