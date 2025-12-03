@@ -29,7 +29,7 @@ from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato
+from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato, borrar_dato
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -92,11 +92,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     live_options = LiveOptions(
         model="nova-2",
         language=Language.ES_419,
-        interim_results=True,
         smart_format=True,
         punctuate=True,
-        encoding="linear16",
-        sample_rate=16000,
+        interim_results=True,
     )
 
     stt = DeepgramSTTService(
@@ -130,7 +128,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         contar_usuarios_tuguia,
         crear_usuario_tuguia,
         contar_usuarios_por_subcategoria,
-        guardar_dato
+        guardar_dato,
+        borrar_dato
     ])
 
     # registrar la funcion de busqueda 
@@ -165,8 +164,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         cancel_on_interruption=False
     )
 
-    # registrar la nueva tool
+    # guardar en memoria
     llm.register_function("guardar_dato", guardar_dato)
+
+    # borrar de memoria
+    llm.register_function("borrar_dato", borrar_dato)
 
     messages = [
         {
@@ -270,8 +272,6 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             allow_interruptions=True,
             enable_metrics=True,
             enable_usage_metrics=True,
-            audio_in_sample_rate=16000, 
-            audio_out_sample_rate=24000,
         ),
         observers=[RTVIObserver(rtvi)],
     )
@@ -325,28 +325,19 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
 
-    vad_params = VADParams(
-        confidence=0.7,
-        start_secs=0.2,
-        stop_secs=0.4,
-        min_volume=0.6
-    )
-    vad_analyzer = SileroVADAnalyzer(params=vad_params)
+    vad_analyzer = SileroVADAnalyzer()
 
     transport_params = {
         "daily": lambda: DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
             vad_analyzer=vad_analyzer,
-            audio_in_sample_rate=16000,
-            audio_out_sample_rate=24000,
+            transcription_enabled=True,
         ),
         "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
             vad_analyzer=vad_analyzer,
-            audio_in_sample_rate=16000,
-            audio_out_sample_rate=24000,
         ),
     }
 

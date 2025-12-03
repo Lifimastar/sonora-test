@@ -229,3 +229,43 @@ async def guardar_dato(params: FunctionCallParams):
         logger.error(f"Error: {e}")
         await params.result_callback({"success": False, "error": str(e)})
         
+async def borrar_dato(params: FunctionCallParams):
+    """
+    Borra un dato específico de la memoria a largo plazo.
+    Usa esto cuando el usuario diga "olvida que...", "borra el dato de...", etc.
+    
+    Args:
+        key (str): El nombre o etiqueta del dato a borrar. Ejemplo: "precio_dolar".
+    """
+    try:
+        logger.info("🗑️ Borrando dato de memoria...")
+        args = params.arguments
+        key = args.get("key")
+        
+        if not key:
+            await params.result_callback({
+                "success": False,
+                "error": "Se requiere el argumento 'key' para saber qué borrar."
+            })
+            return
+        
+        db = DatabaseService()
+        import os
+        db.user_id = os.getenv("TEST_USER_ID")
+        
+        success = db.delete_memory(key)
+        
+        if success:
+            await params.result_callback({
+                "success": True,
+                "mensaje": f"Entendido. He borrado el dato '{key}' de mi memoria."
+            })
+        else:
+            await params.result_callback({
+                "success": False,
+                "error": "Error al intentar borrar el dato en la base de datos."
+            })
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await params.result_callback({"success": False, "error": str(e)})
