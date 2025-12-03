@@ -24,11 +24,12 @@ import datetime
 import os
 import time
 
+from app.prompts import SYSTEM_PROMPT
 from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria
+from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -126,7 +127,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         buscar_informacion,
         contar_usuarios_tuguia,
         crear_usuario_tuguia,
-        contar_usuarios_por_subcategoria
+        contar_usuarios_por_subcategoria,
+        guardar_dato
     ])
 
     # registrar la funcion de busqueda 
@@ -161,50 +163,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         cancel_on_interruption=False
     )
 
+    # registrar la nueva tool
+    llm.register_function("guardar_dato", guardar_dato)
+
     messages = [
         {
             "role": "system",
-            "content": """Eres un asistente experto y amigable del Ecosistema Red Futura (que incluye Tu Guía Argentina).
-
-            CAPACIDADES:
-            1. 🧠 MEMORIA CONTEXTUAL: Tienes acceso al historial completo de la conversación.
-            - Si el usuario pregunta "¿de qué hablamos la última vez?" o "¿qué te dije?", REVISA EL HISTORIAL y responde con precisión.
-            - NO digas "no tengo memoria". SÍ la tienes en el contexto actual.
-
-            2. 🔍 BUSCAR INFORMACIÓN: Tienes acceso a una base de conocimiento completa con contratos, términos y condiciones.
-            - Cuando te pregunten sobre reglas, servicios, obligaciones, contratos o términos legales, DEBES usar la función `buscar_informacion`.
-            - IMPORTANTE: SIEMPRE debes pasar el argumento `query` con lo que quieres buscar.
-            - Ejemplo: `buscar_informacion(query="obligaciones del adherido")`
-            - NUNCA llames a esta función sin argumentos.
-            - NO inventes información legal. Búscala siempre.
-
-            3. 📊 SUARIOS TU GUÍA: Puedes contar usuarios de la base de datos de Tu Guía Argentina.
-
-            - Usa `contar_usuarios_tuguia` para contar usuarios totales.
-            - Usa `contar_usuarios_por_subcategoria` para contar por subcategorias ESPECIFICAS.
-                - IMPORTANTE: SIEMPRE debes preguntar al usuario QUÉ subcategoría(s) le interesan.
-                - Acepta una o varias subcategorías: "Fotógrafos", ["Arquitectos", "Diseñadores"]
-                - NUNCA llames esta función sin el argumento `subcategory_names`.
-                - Si el usuario pregunta "cuántos usuarios hay por subcategoría" sin especificar cuál, pregúntale: "¿Qué subcategoría te interesa? Por ejemplo: Fotógrafos, Arquitectos, Médicos, etc."
-            - Usa `crear_usuario_tuguia` para crear nuevos usuarios.
-            - Campos obligatorios: email, password, first_name, last_name, phone, account_type
-            - Tipos de cuenta válidos: "personal", "business"
-            - Si el usuario no especifica datos, pregunta por los que faltan.
-
-            INSTRUCCIONES DE INTERACCIÓN:
-            - Tu objetivo es ayudar y resolver dudas con precisión.
-            - Si usas `buscar_informacion`, basa tu respuesta EXCLUSIVAMENTE en lo que encuentres.
-            - Si la búsqueda no arroja resultados, dilo honestamente y ofrece contactar a soporte (contacto@redesfutura.com).
-            - Mantén un tono profesional pero cercano y amable.
-            - Habla siempre en español.
-            - SÉ CONCISO. Respuestas cortas y directas son mejores para voz.
-            
-            🚨 REGLAS DE FORMATO (MUY IMPORTANTE):
-            - ESTÁS HABLANDO, NO ESCRIBIENDO.
-            - NO uses símbolos de markdown como asteriscos (*), guiones (-) o numerales (#).
-            - NO uses listas con viñetas. Usa conectores naturales como "primero", "además", "por último".
-            - NO digas "asterisco" ni leas puntuación extraña.
-            - Escribe los números en texto si son cortos (ej: "cinco" en vez de "5").""",
+            "content": SYSTEM_PROMPT,
         },
     ]
 
@@ -215,6 +180,17 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     async def set_conversation_action(processor, service, arguments):
         conversation_id = arguments.get("conversation_id")
         logger.info(f"🔄 Configurando conversación: {conversation_id}")
+
+        memories = db_service.get_all_memories()
+        if memories:
+            memory_list = [f"- {k}: {v}" for k, v in memories.items()]
+            memory_text = "\nDATOS RECORDADOS:\n" + "\n".join(memory_list)
+            logger.info(f"Memorias cargadas: {len(memories)}")
+        
+            context.add_message({
+                "role": "system",
+                "content": f"Informacion persistente que debe recordar:\n{memory_text}"
+            })
         
         messages_to_send = []
         

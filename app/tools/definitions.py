@@ -1,4 +1,4 @@
-from app.services.database import SUPABASE_URL, SUPABASE_KEY
+from app.services.database import SUPABASE_URL, SUPABASE_KEY, DatabaseService
 from app.services.tuguia_database import TuGuiaDatabase
 from supabase import create_client, Client
 from pipecat.services.llm_service import FunctionCallParams
@@ -184,3 +184,48 @@ async def contar_usuarios_por_subcategoria(params: FunctionCallParams):
             "success": False,
             "error": str(e)
         })
+
+async def guardar_dato(params: FunctionCallParams):
+    """
+    Guarda un dato en la memoria a largo plazo.
+    
+    IMPORTANTE: Esta función requiere DOS argumentos obligatorios: 'key' y 'value'.
+    
+    Args:
+        key (str): El nombre o etiqueta del dato. Ejemplos: "precio_dolar", "nombre_usuario", "fecha_cita".
+        value (str): El valor o contenido del dato. Ejemplos: "1200 pesos", "Juan Perez", "2023-10-27".
+    """
+    try:
+        logger.info("Guardando dato en memoria...")
+        args = params.arguments
+        key = args.get("key")
+        value = args.get("value")
+
+        if not key or not value:
+            await params.result_callback({
+                "success": False,
+                "error": "Se requiere clave y valor"
+            })
+            return
+        
+        db = DatabaseService()
+        import os
+        db.user_id = os.getenv("TEST_USER_ID")
+
+        success = db.save_memory(key, value)
+
+        if success:
+            await params.result_callback({
+                "success": True,
+                "mensaje": f"Entendido. He guardado que '{key}' es '{value}'."
+            })
+        else:
+            await params.result_callback({
+                "success": False,
+                "error": "Error de base de datos"
+            })
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await params.result_callback({"success": False, "error": str(e)})
+        

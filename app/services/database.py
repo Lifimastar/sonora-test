@@ -70,3 +70,35 @@ class DatabaseService:
         except Exception as e:
             print(f"❌ Error recuperando historial: {e}")
             return []
+
+    def save_memory(self, key: str, value: str):
+        """Guarda un dato persistente para el usuario actual"""
+        if not self.user_id:
+            print("No se puede guardar memoria: user_id no definido")
+            return False
+        
+        data = {
+            "user_id": self.user_id,
+            "key": key,
+            "value": value
+        }
+
+        try:
+            self.client.table("user_memory").upsert(data, on_conflict="user_id, key").execute()
+            print(f"Memoria guardada: {key} = {value}")
+            return True
+        except Exception as e:
+            print(f"Error guardando memoria: {e}")
+            return False
+    
+    def get_all_memories(self):
+        """Recupera todas las memorias del usuario"""
+        if not self.user_id:
+            return {}
+        
+        try:
+            response = self.client.table("user_memory").select("key, value").eq("user_id", self.user_id).execute()
+            return {item['key']: item['value'] for item in response.data}
+        except Exception as e:
+            print(f"Error recuperando memorias: {e}")
+            return {}
