@@ -183,6 +183,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     # definir la accion que ejecutara el handler
     async def set_conversation_action(processor, service, arguments):
         conversation_id = arguments.get("conversation_id")
+        user_id = arguments.get("user_id")
+
+        if user_id:
+            logger.info(f"Configurando usuario: {user_id}")
+            db_service.user_id = user_id
+            db_service.ensure_user_exists(user_id)
+        
         logger.info(f"🔄 Configurando conversación: {conversation_id}")
 
         memories = db_service.get_all_memories()
