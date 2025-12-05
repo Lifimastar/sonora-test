@@ -24,12 +24,14 @@ import datetime
 import os
 import time
 
+from app.tools.definitions import BotTools
+from app.context import current_user_id
 from app.prompts import SYSTEM_PROMPT
 from app.pipeline.loggers import UserLogger, AssistantLogger
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato, borrar_dato
+#from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato, borrar_dato
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -72,23 +74,18 @@ load_dotenv(override=True)
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
+
     logger.info(f"Starting bot")
-
-    # inicializar db
     db_service = DatabaseService()
-
-    TEST_USER_ID = os.getenv("TEST_USER_ID")
-    db_service.user_id = TEST_USER_ID
+    bot_tools = BotTools(db_service)
 
     # conversation_id = db_service.create_conversation(
     #     title="Llamada Pipecat con Usuario",
     #     user_id=TEST_USER_ID)
 
-    # crear el logger
     user_logger = UserLogger(db_service)
     assistant_logger = AssistantLogger(db_service)
 
-    # STT en espanol
     live_options = LiveOptions(
         model="nova-2",
         language=Language.ES_419,
@@ -124,18 +121,18 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     # crear el esquema de herramientas
     tools = ToolsSchema(standard_tools=[
-        buscar_informacion,
-        contar_usuarios_tuguia,
-        crear_usuario_tuguia,
-        contar_usuarios_por_subcategoria,
-        guardar_dato,
-        borrar_dato
+        bot_tools.buscar_informacion,
+        bot_tools.contar_usuarios_tuguia,
+        bot_tools.crear_usuario_tuguia,
+        bot_tools.contar_usuarios_por_subcategoria,
+        bot_tools.guardar_dato,
+        bot_tools.borrar_dato
     ])
 
     # registrar la funcion de busqueda 
     llm.register_function(
         "buscar_informacion",
-        buscar_informacion,
+        bot_tools.buscar_informacion,
         start_callback=None,
         cancel_on_interruption=False
     )
@@ -143,7 +140,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     # registrar la funcion de contar usuarios de Tu Guia
     llm.register_function(
         "contar_usuarios_tuguia",
-        contar_usuarios_tuguia,
+        bot_tools.contar_usuarios_tuguia,
         start_callback=None,
         cancel_on_interruption=False
     )
@@ -151,7 +148,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     # registrar la funcion de crear usuarios en Tu Guía
     llm.register_function(
         "crear_usuario_tuguia",
-        crear_usuario_tuguia,
+        bot_tools.crear_usuario_tuguia,
         start_callback=None,
         cancel_on_interruption=False
     )
@@ -159,16 +156,16 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     # registrar la funcion de contar usuarios por subcategoria
     llm.register_function(
         "contar_usuarios_por_subcategoria",
-        contar_usuarios_por_subcategoria,
+        bot_tools.contar_usuarios_por_subcategoria,
         start_callback=None,
         cancel_on_interruption=False
     )
 
     # guardar en memoria
-    llm.register_function("guardar_dato", guardar_dato)
+    llm.register_function("guardar_dato", bot_tools.guardar_dato)
 
     # borrar de memoria
-    llm.register_function("borrar_dato", borrar_dato)
+    llm.register_function("borrar_dato", bot_tools.borrar_dato)
 
     messages = [
         {
@@ -187,6 +184,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
         if user_id:
             logger.info(f"Configurando usuario: {user_id}")
+            current_user_id.set(user_id)
             db_service.user_id = user_id
             db_service.ensure_user_exists(user_id)
         
