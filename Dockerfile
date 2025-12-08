@@ -22,4 +22,4 @@ COPY ./bot.py bot.py
 COPY ./app app
 
 # Command to run the bot
-CMD ["uv", "run", "bot.py", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["uv", "run", "bot.py", "--host", "0.0.0.0", "--port", "7860"]
