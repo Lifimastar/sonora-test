@@ -28,6 +28,7 @@ from app.tools.definitions import BotTools
 from app.context import current_user_id
 from app.prompts import SYSTEM_PROMPT
 from app.pipeline.loggers import UserLogger, AssistantLogger
+from app.pipeline.vision_processor import VisionCaptureProcessor
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
@@ -77,14 +78,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     logger.info(f"Starting bot")
     db_service = DatabaseService()
-    bot_tools = BotTools(db_service)
-
-    # conversation_id = db_service.create_conversation(
-    #     title="Llamada Pipecat con Usuario",
-    #     user_id=TEST_USER_ID)
-
+    vision_processor = VisionCaptureProcessor(capture_interval=2.0)
+    bot_tools = BotTools(db_service, vision_processor)
     user_logger = UserLogger(db_service)
     assistant_logger = AssistantLogger(db_service)
+    
 
     live_options = LiveOptions(
         model="nova-2",
@@ -126,7 +124,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         bot_tools.crear_usuario_tuguia,
         bot_tools.contar_usuarios_por_subcategoria,
         bot_tools.guardar_dato,
-        bot_tools.borrar_dato
+        bot_tools.borrar_dato,
+        bot_tools.ver_camara
     ])
 
     # registrar la funcion de busqueda 
@@ -166,6 +165,14 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     # borrar de memoria
     llm.register_function("borrar_dato", bot_tools.borrar_dato)
+
+    # registrar la funcion de ver camara
+    llm.register_function(
+        "ver_camara",
+        bot_tools.ver_camara,
+        start_callback=None,
+        cancel_on_interruption=False
+    )
 
     messages = [
         {
@@ -259,6 +266,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     pipeline = Pipeline(
         [
             transport.input(),  # Microfono
+            vision_processor, # frames de video
             rtvi,  # RTVI processor
             stt, # Audio -> Texto (User)
             user_logger, # capturar user
@@ -342,6 +350,7 @@ async def bot(runner_args: RunnerArguments):
         "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
+            camera_in_enabled=True,
             vad_analyzer=vad_analyzer,
         ),
     }

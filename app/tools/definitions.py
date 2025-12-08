@@ -1,5 +1,6 @@
 from app.services.database import SUPABASE_URL, SUPABASE_KEY, DatabaseService
 from app.services.tuguia_database import TuGuiaDatabase
+from app.pipeline.vision_processor import VisionCaptureProcessor
 from supabase import create_client, Client
 from pipecat.services.llm_service import FunctionCallParams
 from loguru import logger
@@ -13,12 +14,13 @@ from app.context import current_user_id
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 class BotTools:
-    def __init__(self, db_service: DatabaseService):
+    def __init__(self, db_service: DatabaseService, vision_processor: VisionCaptureProcessor = None):
         """
         Inicializa las herramientas con el servicio de base de datos de la sesión actual.
         Esto asegura que todas las operaciones usen el user_id correcto.
         """
         self.db_service = db_service
+        self.vision_processor = vision_processor
 
     async def buscar_informacion(self, params: FunctionCallParams):
         """
@@ -223,3 +225,38 @@ class BotTools:
         except Exception as e:
             logger.error(f"Error: {e}")
             await params.result_callback({"success": False, "error": str(e)})
+
+    async def ver_camara(self, params: FunctionCallParams):
+        """
+        Permite al LLM ver lo que hay en la cámara del usuario.
+        Retorna la imagen en formato que GPT-4o puede interpretar.
+        """
+        try:
+            if not self.vision_processor:
+                await params.result_callback({
+                    "success": False,
+                    "error": "Procesador de vision no disponible"
+                })
+                return
+            
+            if not self.vision_processor.has_image():
+                await params.result_callback({
+                    "success": False,
+                    "mensaje": "No hay imagen disponible de la camara. Puede que la camara no este activa."
+                })
+                return
+            
+            image_base64 = self.vision_processor.get_last_image_base64()
+            logger.info(f"Imagen de camara solicitada por el LLM")
+
+            await params.result_callback({
+                "success": True,
+                "description": "Imagen capturada de la cámara del usuario. Analiza la imagen y describe lo que ves de forma detallada.",
+                "imagen_data_url": f"data:image/jpeg;base64,{image_base64}"
+            })
+        except Exception as e:
+            logger.error(f"Error obteniendo imagen de camara: {e}")
+            await params.result_callback({
+                "success": False,
+                "error": str(e)
+            })
