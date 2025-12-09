@@ -39,7 +39,9 @@ class DatabaseService:
         if not self.conversation_id:
             print("⚠️ No hay conversacion activa. Creando una nueva automaticamente...")
             self.create_conversation(title="Conversacion Automatica", user_id=self.user_id)
-            return
+            if not self.conversation_id:
+                print("No se pudo crear la conversacion")
+                return
         
         data = {
             "conversation_id": self.conversation_id,
