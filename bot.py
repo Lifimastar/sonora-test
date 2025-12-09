@@ -32,7 +32,10 @@ from app.pipeline.vision_processor import VisionCaptureProcessor
 from dotenv import load_dotenv
 from app.services.database import DatabaseService
 from loguru import logger
-#from app.tools.definitions import buscar_informacion, contar_usuarios_tuguia, crear_usuario_tuguia, contar_usuarios_por_subcategoria, guardar_dato, borrar_dato
+import sys
+
+logger.remove()
+logger.add(sys.stderr, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>")
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")

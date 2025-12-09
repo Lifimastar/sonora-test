@@ -49,13 +49,13 @@ class VisionCaptureProcessor(FrameProcessor):
                 ratio = min(self._max_size / width, self._max_size / height)
                 new_size = (int(width * ratio), int(height * ratio))
                 img = img.resize(new_size, Image.Resampling.LANCZOS)
-                logger.debug(f"Imagen redimensionada a {new_size}")
+                #logger.debug(f"Imagen redimensionada a {new_size}")
             
             buffer = io.BytesIO()
             img.save(buffer, format='JPEG', quality=self._quality, optimize=True)
             compressed_bytes = buffer.getvalue()
 
-            logger.debug(f"Imagen comprimida: {len(frame.image)} -> {len(compressed_bytes)} bytes")
+            #logger.debug(f"Imagen comprimida: {len(frame.image)} -> {len(compressed_bytes)} bytes")
 
             return base64.b64encode(compressed_bytes).decode('utf-8')
 
@@ -73,7 +73,7 @@ class VisionCaptureProcessor(FrameProcessor):
                 self._last_image = frame.image
                 self._last_image_base64 = self._compress_image(frame)
                 self._last_capture_time = current_time
-                logger.debug(f"Frame capturado y comprimido")
+                #logger.debug(f"Frame capturado y comprimido")
         
         await self.push_frame(frame, direction)
     

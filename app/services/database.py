@@ -72,46 +72,34 @@ class DatabaseService:
             return []
 
     def save_memory(self, key: str, value: str):
-        """Guarda un dato persistente para el usuario actual"""
-        if not self.user_id:
-            print("No se puede guardar memoria: user_id no definido")
-            return False
-        
+        """Guarda un dato persistente compartido globalmente (todos los usuarios)"""
         data = {
-            "user_id": self.user_id,
             "key": key,
             "value": value
         }
 
         try:
-            self.client.table("user_memory").upsert(data, on_conflict="user_id, key").execute()
-            print(f"Memoria guardada: {key} = {value}")
+            self.client.table("shared_memory").upsert(data, on_conflict="key").execute()
+            print(f"Memoria compartida guardada: {key} = {value}")
             return True
         except Exception as e:
             print(f"Error guardando memoria: {e}")
             return False
     
     def get_all_memories(self):
-        """Recupera todas las memorias del usuario"""
-        if not self.user_id:
-            return {}
-        
+        """Recupera todas las memorias compartidas globalmente"""
         try:
-            response = self.client.table("user_memory").select("key, value").eq("user_id", self.user_id).execute()
+            response = self.client.table("shared_memory").select("key, value").execute()
             return {item['key']: item['value'] for item in response.data}
         except Exception as e:
             print(f"Error recuperando memorias: {e}")
             return {}
         
     def delete_memory(self, key: str):
-        """Borra un dato persistente del usuario actual"""
-        if not self.user_id:
-            print("⚠️ No se puede borrar memoria: user_id no definido")
-            return False
-            
+        """Borra un dato persistente compartido"""
         try:
-            self.client.table("user_memory").delete().eq("user_id", self.user_id).eq("key", key).execute()
-            print(f"🗑️ Memoria borrada: {key}")
+            self.client.table("shared_memory").delete().eq("key", key).execute()
+            print(f"🗑️ Memoria compartida borrada: {key}")
             return True
         except Exception as e:
             print(f"❌ Error borrando memoria: {e}")

@@ -116,7 +116,7 @@ class BotTools:
                 logger.error(f"{mensaje}")
             
             result["mensaje"] = mensaje
-            await params.result_callback({"success": False, "error": "Implementación pendiente en refactor"})
+            await params.result_callback(result)
 
         except Exception as e:
             logger.error(f"Error: {e}")
