@@ -187,6 +187,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     context = LLMContext(messages, tools=tools)
     context_aggregator = LLMContextAggregatorPair(context)
 
+    bot_tools.set_context(context)
+
     # definir la accion que ejecutara el handler
     async def set_conversation_action(processor, service, arguments):
         conversation_id = arguments.get("conversation_id")
