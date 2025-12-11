@@ -260,6 +260,17 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                         args = action_data.get("arguments", {})
                         logger.info(f"⚡ Interceptado set_conversation_id manualmente: {args}")
                         await conversation_handler.handle_action(None, None, args)
+            
+            # 3. Interceptar IMAGENES del usuario
+            if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
+                data = message.get("data", {})
+                if data.get("t") == "user_image":
+                    image_base64 = data.get("d", {}).get("image")
+                    if image_base64:
+                        logger.info("Recibida imagen del usuario procesando...")
+                        await conversation_handler.handle_user_image(image_base64)
+                        return
+                        
         except Exception as e:
             logger.error(f"Error processing app message: {e}")
             import traceback
@@ -278,7 +289,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
 
-    vad_analyzer = SileroVADAnalyzer()
+    vad_analyzer = SileroVADAnalyzer(params=VADParams(
+        confidence=0.8, # Sensibilidad mas baja (requiere voz mas clara)
+        min_speech_duration_ms=300, # Ignorar ruidos cortos (clicks, golpes)
+        min_silence_duration_ms=500
+    ))
 
     transport_params = {
         "daily": lambda: DailyParams(
