@@ -84,3 +84,31 @@ class ConversationActionHandler:
                 logger.error("❌ Task no seteado en ConversationActionHandler, no se puede enviar LLMRunFrame")
         
         return True
+
+    async def handle_user_image(self, image_base64: str):
+        """Maneja imagenes subidas por el usuario."""
+        if not image_base64:
+            return
+        
+        logger.info(f"Recibida imagen del usuario. Tamano: {len(image_base64)} caracteres")
+
+        self.context.add_message({
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "He subido una imagen. Analizala."
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": image_base64
+                    }
+                }
+            ]
+        })
+
+        if self.task:
+            await self.task.queue_frame(LLMRunFrame())
+        else:
+            logger.error("Task no disponible para procesar imagen")
