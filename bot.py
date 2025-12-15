@@ -261,7 +261,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                         logger.info(f"⚡ Interceptado set_conversation_id manualmente: {args}")
                         await conversation_handler.handle_action(None, None, args)
             
-            # 3. Interceptar IMAGENES del usuario
+            # 3. Interceptar IMAGENES del usuario (Legacy)
             if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
                 data = message.get("data", {})
                 if data.get("t") == "user_image":
@@ -270,6 +270,18 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                         logger.info("Recibida imagen del usuario procesando...")
                         await conversation_handler.handle_user_image(image_base64)
                         return
+            
+            # 4. Interceptar Mensaje MULTIMODAL (Texto + URLs)
+            if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
+                data = message.get("data", {})
+                if data.get("t") == "user_multimodal_message":
+                    payload = data.get("d", {})
+                    text = payload.get("text")
+                    image_urls = payload.get("image_urls", [])
+                    
+                    logger.info(f"📨 Mensaje Multimodal recibido: {text} + {len(image_urls)} imagenes")
+                    await conversation_handler.handle_multimodal_message(text, image_urls)
+                    return
                         
         except Exception as e:
             logger.error(f"Error processing app message: {e}")
