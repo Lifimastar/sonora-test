@@ -169,12 +169,19 @@ class BotTools:
             })
 
     async def guardar_dato(self, params: FunctionCallParams):
-        """Guarda un dato en la memoria a largo plazo del usuario actual."""
+        """
+        Guarda un dato en la base de datos.
+        Args:
+            key: El nombre del dato.
+            value: El valor a recordar.
+            scope: 'user' (Dato personal privado) o 'public' (Dato público/compartido para todos los usuarios).
+        """
         try:
             logger.info("Guardando dato en memoria...")
             args = params.arguments
             key = args.get("key")
             value = args.get("value")
+            scope = args.get("scope", "user") # Default a usuario
 
             if not key or not value:
                 await params.result_callback({
@@ -183,12 +190,25 @@ class BotTools:
                 })
                 return
             
-            success = self.db_service.save_memory(key, value)
+            # Determinar user_id basado en scope
+            target_user_id = None
+            
+            # Si el scope es "public" o "global", target_user_id se queda en None (Memoria Compartida)
+            if scope == "user":
+                target_user_id = self.db_service.user_id # Obtener del servicio DB que ya tiene el contexto
+                if not target_user_id:
+                     # Fallback seguro
+                    from app.context import current_user_id
+                    target_user_id = current_user_id.get()
+            
+            # Llamar al servicio DB actualizado
+            success = self.db_service.save_memory(key, value, user_id=target_user_id)
 
             if success:
+                msg_tipo = "PERSONAL" if target_user_id else "PÚBLICA/COMUNITARIA"
                 await params.result_callback({
                     "success": True,
-                    "mensaje": f"Entendido. He guardado que '{key}' es '{value}'."
+                    "mensaje": f"Entendido. He guardado '{key}' = '{value}' en la base de datos {msg_tipo}."
                 })
             else:
                 await params.result_callback({
@@ -201,7 +221,7 @@ class BotTools:
             await params.result_callback({"success": False, "error": str(e)})
             
     async def borrar_dato(self, params: FunctionCallParams):
-        """Borra un dato específico de la memoria."""
+        """Borra un dato de la memoria."""
         try:
             logger.info("🗑️ Borrando dato de memoria...")
             args = params.arguments
@@ -214,7 +234,10 @@ class BotTools:
                 })
                 return
             
-            success = self.db_service.delete_memory(key)
+            # Intentar borrar usando el contexto del usuario actual
+            user_id = self.db_service.user_id
+            
+            success = self.db_service.delete_memory(key, user_id=user_id)
             
             if success:
                 await params.result_callback({
@@ -224,7 +247,7 @@ class BotTools:
             else:
                 await params.result_callback({
                     "success": False,
-                    "error": "Error al borrar"
+                    "error": "No se encontró el dato o hubo un error."
                 })
 
         except Exception as e:

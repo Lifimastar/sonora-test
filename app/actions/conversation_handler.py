@@ -27,11 +27,11 @@ class ConversationActionHandler:
         
         logger.info(f"🔄 Configurando conversación: {conversation_id}")
 
-        memories = self.db_service.get_all_memories()
+        memories = self.db_service.get_all_memories(user_id=self.db_service.user_id)
         if memories:
             memory_list = [f"- {k}: {v}" for k, v in memories.items()]
             memory_text = "\nDATOS RECORDADOS:\n" + "\n".join(memory_list)
-            logger.info(f"Memorias cargadas: {len(memories)}")
+            logger.info(f"Memorias cargadas: {len(memories)} (Usuario: {self.db_service.user_id})")
         
             self.context.add_message({
                 "role": "system",
@@ -86,11 +86,11 @@ class ConversationActionHandler:
         return True
 
     async def handle_user_image(self, image_base64: str):
-        """Maneja imagenes subidas por el usuario."""
+        """Maneja imagenes subidas por el usuario (Legacy single image)."""
         if not image_base64:
             return
         
-        logger.info(f"Recibida imagen del usuario. Tamano: {len(image_base64)} caracteres")
+        logger.info(f"Recibida imagen del usuario (Legacy).")
 
         self.context.add_message({
             "role": "user",
@@ -112,3 +112,36 @@ class ConversationActionHandler:
             await self.task.queue_frame(LLMRunFrame())
         else:
             logger.error("Task no disponible para procesar imagen")
+
+    async def handle_multimodal_message(self, text: str, image_urls: list):
+        """Maneja mensajes compuestos de texto + multiples imagenes (via URL)."""
+        logger.info(f"📸 Procesando mensaje multimodal: '{text}' + {len(image_urls)} imagenes")
+
+        content_block = []
+        
+        # 1. Agregar el texto
+        if text:
+            content_block.append({"type": "text", "text": text})
+        
+        # 2. Agregar las imágenes
+        for url in image_urls:
+            content_block.append({
+                "type": "image_url",
+                "image_url": {"url": url}
+            })
+            
+        # 3. Guardar en Contexto del LLM
+        self.context.add_message({
+            "role": "user",
+            "content": content_block
+        })
+        
+        # 4. Guardar en Base de Datos (Persistencia)
+        # Usamos el servicio de DB para guardar el registro
+        self.db_service.add_message("user", text, images=image_urls)
+
+        # 5. Disparar respuesta del LLM
+        if self.task:
+             await self.task.queue_frame(LLMRunFrame())
+        else:
+            logger.error("❌ Task no disponible para procesar mensaje multimodal")
