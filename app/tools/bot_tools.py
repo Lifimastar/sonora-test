@@ -1,4 +1,5 @@
-from app.services.database import SUPABASE_URL, SUPABASE_KEY, DatabaseService
+from app.services.database import DatabaseService
+from app.core.supabase_client import get_supabase
 from app.services.tuguia_database import TuGuiaDatabase
 from app.pipeline.vision_processor import VisionCaptureProcessor
 from supabase import create_client, Client
@@ -12,7 +13,7 @@ from app.context import current_user_id
 from pipecat.processors.aggregators.llm_context import LLMContext
 
 # Cliente Supabase para operaciones administrativas (crear usuarios, contar)
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = get_supabase()
 
 class BotTools:
     def __init__(self, db_service: DatabaseService, vision_processor: VisionCaptureProcessor = None):

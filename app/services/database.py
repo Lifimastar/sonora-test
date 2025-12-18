@@ -3,16 +3,15 @@ Servicio para interactuar con Supabase y guardar el historial de chat.
 """
 import os
 from dotenv import load_dotenv
+from loguru import logger
 from supabase import create_client, Client
+from app.core.supabase_client import get_supabase
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-
 class DatabaseService:
     def __init__(self):
-        self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        self.client: Client = get_supabase()
         self.conversation_id = None
         self.user_id = None
     
@@ -30,7 +29,7 @@ class DatabaseService:
 
         if response.data:
             self.conversation_id = response.data[0]['id']
-            print(f"📝 Conversacion iniciada: {self.conversation_id} (Usuario: {user_id})")
+            logger.info(f"📝 Conversacion iniciada: {self.conversation_id} (Usuario: {user_id})")
             return self.conversation_id
         return None
     
@@ -38,10 +37,10 @@ class DatabaseService:
     def add_message(self, role: str, content: str, images: list = None):
         """Guarda un mensaje en la conversacion actual (soporta imagenes)"""
         if not self.conversation_id:
-            print("⚠️ No hay conversacion activa. Creando una nueva automaticamente...")
+            logger.warning("⚠️ No hay conversacion activa. Creando una nueva automaticamente...")
             self.create_conversation(title="Conversacion Automatica", user_id=self.user_id)
             if not self.conversation_id:
-                print("No se pudo crear la conversacion")
+                logger.error("No se pudo crear la conversacion")
                 return
         
         data = {
@@ -52,9 +51,9 @@ class DatabaseService:
         }
         try:
             self.client.table("messages").insert(data).execute()
-            print(f"💾 mensaje guardado ({role}) - Imgs: {len(images) if images else 0}")
+            logger.debug(f"💾 mensaje guardado ({role}) - Imgs: {len(images) if images else 0}")
         except Exception as e:
-            print(f"❌ error guardando mensaje: {e}")
+            logger.error(f"❌ error guardando mensaje: {e}")
     
     def get_history(self, limit: int = 50):
         """Recupera el historial (para futuras implementaciones de 'continuar')"""
@@ -93,7 +92,7 @@ class DatabaseService:
 
             return formatted_history
         except Exception as e:
-            print(f"❌ Error recuperando historial: {e}")
+            logger.error(f"❌ Error recuperando historial: {e}")
             return []
 
     def save_memory(self, key: str, value: str, user_id: str = None):
@@ -125,16 +124,16 @@ class DatabaseService:
                     # Insert
                     self.client.table("user_memory").insert(data).execute()
                 
-                print(f"🧠 Memoria USUARIO guardada: {key} = {value} ({user_id})")
+                logger.info(f"🧠 Memoria USUARIO guardada: {key} = {value} ({user_id})")
             else:
                 # Memoria Global
                 data = {"key": key, "value": value}
                 self.client.table("shared_memory").upsert(data, on_conflict="key").execute()
-                print(f"🌍 Memoria GLOBAL guardada: {key} = {value}")
+                logger.info(f"🌍 Memoria GLOBAL guardada: {key} = {value}")
             
             return True
         except Exception as e:
-            print(f"❌ Error guardando memoria ({'user' if user_id else 'global'}): {e}")
+            logger.error(f"❌ Error guardando memoria ({'user' if user_id else 'global'}): {e}")
             return False
     
     def get_all_memories(self, user_id: str = None):
@@ -154,7 +153,7 @@ class DatabaseService:
                     
             return memories
         except Exception as e:
-            print(f"Error recuperando memorias: {e}")
+            logger.error(f"Error recuperando memorias: {e}")
             return {}
         
     def delete_memory(self, key: str, user_id: str = None):
@@ -165,7 +164,7 @@ class DatabaseService:
             if user_id:
                 res = self.client.table("user_memory").delete().eq("user_id", user_id).eq("key", key).execute()
                 if res.data:
-                    print(f"🗑️ Memoria USUARIO borrada: {key}")
+                    logger.info(f"🗑️ Memoria USUARIO borrada: {key}")
                     deleted = True
             
             # Si no se borró de usuario (o no habia user_id), intentar global
@@ -175,12 +174,12 @@ class DatabaseService:
             if not deleted:
                 res = self.client.table("shared_memory").delete().eq("key", key).execute()
                 if res.data:
-                    print(f"🗑️ Memoria GLOBAL borrada: {key}")
+                    logger.info(f"🗑️ Memoria GLOBAL borrada: {key}")
                     deleted = True
             
             return deleted
         except Exception as e:
-            print(f"❌ Error borrando memoria: {e}")
+            logger.error(f"❌ Error borrando memoria: {e}")
             return False
     
     def ensure_user_exists(self, user_id: str):
@@ -193,4 +192,4 @@ class DatabaseService:
         except Exception as e:
             # Si falla, logueamos pero NO detenemos el bot, para ver si la conversación pasa igual
             # (aunque si la FK es estricta, fallará luego en create_conversation)
-            print(f"⚠️ Warning: No se pudo sincronizar usuario {user_id}: {e}")
+            logger.warning(f"⚠️ Warning: No se pudo sincronizar usuario {user_id}: {e}")

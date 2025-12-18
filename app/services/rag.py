@@ -4,6 +4,7 @@ Servicio RAG para búsqueda semántica en la base de conocimiento.
 
 import os
 from typing import List, Dict
+from functools import lru_cache
 from dotenv import load_dotenv
 from openai import OpenAI
 from supabase import create_client, Client
@@ -24,6 +25,15 @@ def generate_query_embedding(query: str) -> List[float]:
     )
     return response.data[0].embedding
 
+@lru_cache(maxsize=100)
+def generate_query_embedding_cached(query: str) -> tuple:
+    """
+    Version cacheada de generate_query_embedding.
+    Retorna tuple para ser hashable (requerido por lru_cache).
+    """
+    embedding = generate_query_embedding(query)
+    return tuple(embedding)
+
 def search_knowledge_base(
     query: str, 
     match_threshold: float = 0.78,
@@ -40,8 +50,7 @@ def search_knowledge_base(
     Returns:
         Lista de chunks relevantes con metadata
     """
-    # Generar embedding de la consulta
-    query_embedding = generate_query_embedding(query)
+    query_embedding = list(generate_query_embedding_cached(query))
     
     # Buscar en Supabase usando la función match_documents
     response = supabase.rpc(
