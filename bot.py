@@ -51,7 +51,7 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 logger.info("✅ Silero VAD model loaded")
 
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame
+from pipecat.frames.frames import LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartInterruptionFrame
 
 logger.info("Loading pipeline components...")
 
@@ -245,6 +245,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                     text = data.get("d", {}).get("text")
                     if text:
                         logger.info(f"💬 Texto recibido del usuario: {text}")
+                        await task.queue_frame(StartInterruptionFrame())
                         # Inyectar frames para simular un turno de usuario
                         await task.queue_frame(UserStartedSpeakingFrame())
                         await task.queue_frame(TranscriptionFrame(text=text, user_id="user", timestamp=datetime.datetime.now().isoformat()))
@@ -281,6 +282,19 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                     
                     logger.info(f"📨 Mensaje Multimodal recibido: {text} + {len(image_urls)} imagenes")
                     await conversation_handler.handle_multimodal_message(text, image_urls)
+                    return
+            
+            # 5. Interceptar ARCHIVOS DE TEXTO del usuario
+            if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
+                data = message.get("data", {})
+                if data.get("t") == "user_file_message":
+                    payload = data.get("d", {})
+                    text = payload.get("text")
+                    file_content = payload.get("file_content")
+                    file_name = payload.get("file_name")
+
+                    logger.info(f"Archivo recibido: {file_name} ({len(file_content) if file_content else 0} chars)")
+                    await conversation_handler.handle_file_message(text, file_content, file_name)
                     return
                         
         except Exception as e:

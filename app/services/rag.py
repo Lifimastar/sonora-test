@@ -7,15 +7,13 @@ from typing import List, Dict
 from functools import lru_cache
 from dotenv import load_dotenv
 from openai import OpenAI
-from supabase import create_client, Client
+#from supabase import create_client, Client
+from app.core.supabase_client import get_supabase
 
 load_dotenv()
 
 # Configuración
 OPENAI_CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def generate_query_embedding(query: str) -> List[float]:
     """Genera embedding para la consulta del usuario"""
@@ -50,6 +48,7 @@ def search_knowledge_base(
     Returns:
         Lista de chunks relevantes con metadata
     """
+    supabase = get_supabase()
     query_embedding = list(generate_query_embedding_cached(query))
     
     # Buscar en Supabase usando la función match_documents
