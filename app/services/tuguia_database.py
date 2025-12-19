@@ -1,21 +1,13 @@
-import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# credenciales de tu guia
-TUGUIA_SUPABASE_URL = os.getenv("TUGUIA_SUPABASE_URL")
-TUGUIA_SUPABASE_KEY = os.getenv("TUGUIA_SUPABASE_SERVICE_KEY")
-
-# cliente de supabase para tu guia
-tuguia_supabase = create_client(TUGUIA_SUPABASE_URL, TUGUIA_SUPABASE_KEY)
+#import os
+#from supabase import create_client, Client
+#from dotenv import load_dotenv
+from app.core.supabase_client import get_tuguia_supabase
 
 class TuGuiaDatabase:
     """Servicio para interactuar con la base de datos de Tu Guia"""
 
     def __init__(self):
-        self.client = tuguia_supabase
+        self.client = get_tuguia_supabase()
     
     def count_users(self):
         """Cuenta usuarios en la base de datos de Tu Guia"""

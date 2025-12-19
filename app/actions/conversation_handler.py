@@ -1,7 +1,7 @@
 from loguru import logger
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.pipeline.task import PipelineTask
-from pipecat.frames.frames import LLMRunFrame
+from pipecat.frames.frames import LLMRunFrame, StartInterruptionFrame
 from app.services.database import DatabaseService
 
 class ConversationActionHandler:
@@ -117,6 +117,9 @@ class ConversationActionHandler:
         """Maneja mensajes compuestos de texto + multiples imagenes (via URL)."""
         logger.info(f"📸 Procesando mensaje multimodal: '{text}' + {len(image_urls)} imagenes")
 
+        if self.task:
+            await self.task.queue_frame(StartInterruptionFrame())
+
         content_block = []
         
         # 1. Agregar el texto
@@ -145,3 +148,44 @@ class ConversationActionHandler:
              await self.task.queue_frame(LLMRunFrame())
         else:
             logger.error("❌ Task no disponible para procesar mensaje multimodal")
+
+    async def handle_file_message(self, text: str, file_content: str, file_name: str):
+        """Maneja mensajes con archivos de texto adjuntos."""
+        logger.info(f"Procesando archivo: '{file_name}' ({len(file_content) if file_content else 0}) chars")
+
+        if self.task:
+            await self.task.queue_frame(StartInterruptionFrame())
+
+        if not file_content:
+            logger.warning("Archivo vacio recibido")
+            return
+        
+        # Trunca si es muy largo (limite de tokens)
+        MAX_CHARS = 15000 # ~4000 tokens
+        truncated = False
+        if len(file_content) > MAX_CHARS:
+            file_content = file_content[:MAX_CHARS]
+            truncated = True
+        
+        # Contruir mensaje para el LLM
+        truncation_note = "\n\n[... contenido truncado por longitud ...]" if truncated else ""
+        user_message = f"""El usuario ha compartido un archivo llamado "{file_name}".
+        CONTENIDO DEL ARCHIVO:
+        ---
+        {file_content}{truncation_note}
+        ---
+        MENSAJE DEL USUARIO {text if text else "Analiza este archivo."}"""
+
+        self.context.add_message({
+            "role": "user",
+            "content": user_message
+        })
+
+        # Guardar en DB
+        self.db_service.add_message("user", f"[Archivo: {file_name}] {text if text else ''}")
+
+        # Disparar respuesta
+        if self.task:
+            await self.task.queue_frame(LLMRunFrame())
+        else:
+            logger.error("Task no disponible para procesar archivo")
