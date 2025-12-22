@@ -182,14 +182,14 @@ class DatabaseService:
             logger.error(f"❌ Error borrando memoria: {e}")
             return False
     
-    def ensure_user_exists(self, user_id: str):
-        """Asegura que el usuario exista en la tabla users para evitar errores de FK"""
-        try:
-            # Solo insertamos el ID. Si ya existe, no hacemos nada (on_conflict='id').
-            # En Supabase-py, upsert maneja esto.
-            data = {"id": user_id} 
-            self.client.table("users").upsert(data).execute()
-        except Exception as e:
-            # Si falla, logueamos pero NO detenemos el bot, para ver si la conversación pasa igual
-            # (aunque si la FK es estricta, fallará luego en create_conversation)
-            logger.warning(f"⚠️ Warning: No se pudo sincronizar usuario {user_id}: {e}")
+    # def ensure_user_exists(self, user_id: str):
+    #     """Asegura que el usuario exista en la tabla users para evitar errores de FK"""
+    #     try:
+    #         # Solo insertamos el ID. Si ya existe, no hacemos nada (on_conflict='id').
+    #         # En Supabase-py, upsert maneja esto.
+    #         data = {"id": user_id} 
+    #         self.client.table("users").upsert(data).execute()
+    #     except Exception as e:
+    #         # Si falla, logueamos pero NO detenemos el bot, para ver si la conversación pasa igual
+    #         # (aunque si la FK es estricta, fallará luego en create_conversation)
+    #         logger.warning(f"⚠️ Warning: No se pudo sincronizar usuario {user_id}: {e}")

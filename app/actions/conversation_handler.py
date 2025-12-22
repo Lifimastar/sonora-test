@@ -23,7 +23,7 @@ class ConversationActionHandler:
             from app.context import current_user_id
             current_user_id.set(user_id)
             self.db_service.user_id = user_id
-            self.db_service.ensure_user_exists(user_id)
+            #self.db_service.ensure_user_exists(user_id)
         
         logger.info(f"🔄 Configurando conversación: {conversation_id}")
 
