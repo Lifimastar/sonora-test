@@ -85,8 +85,9 @@ class DatabaseService:
                     if msg.get("images") and len(msg["images"]) > 0:
                         content_str += f" [El usuario adjuntó {len(msg['images'])} imágenes]"
                     
+                    role = "assistant" if msg["role"] == "agent" else msg["role"]
                     formatted_history.append({
-                        "role": msg["role"],
+                        "role": role,
                         "content": content_str
                     })
 
