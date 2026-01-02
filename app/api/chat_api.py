@@ -4,7 +4,7 @@ Usa la misma lógica del bot de voz (OpenAI + Tools).
 """
 import os
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -255,3 +255,89 @@ NOTA: Estás respondiendo en modo TEXTO (no voz).
     except Exception as e:
         logger.error(f"Error en chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    conversation_id: str = Form(...),
+    user_id: str = Form(None),
+    message: str = Form(""),
+    image_urls: str = Form("")  # URLs de imágenes separadas por coma
+):
+    """Endpoint para subir archivos con mensaje opcional."""
+    db_service = DatabaseService()
+    db_service.conversation_id = conversation_id
+    db_service.user_id = user_id
+
+    try:
+        # Leer archivo
+        file_content = await file.read()
+        file_name = file.filename
+        file_type = file.content_type
+
+        logger.info(f"📁 Archivo recibido: {file_name} (MIME: {file_type})")
+
+        # Extraer texto segun tipo
+        text_content = ""
+        if file_type and file_type.startswith("image/"):
+            # Para imagenes, las procesamos como base64
+            import base64
+            image_base64 = base64.b64encode(file_content).decode("utf-8")
+
+            # Guardar mensaje del usuario con referencia a imagen
+            user_msg = message if message else f"[Imagen: {file_name}]"
+            # Parsear URLs de imágenes
+            img_list = [url.strip() for url in image_urls.split(",") if url.strip()] if image_urls else []
+            db_service.add_message("user", user_msg, images=img_list)
+
+            # Llamar a OpenAI con la imagen
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": message or "Que ves en esta imagen?"},
+                        {"type": "image_url", "image_url": {"url": f"data:{file_type};base64,{image_base64}"}}
+                    ]}
+                ],
+                stream=True
+            )
+        elif file_type in ["text/plain", "text/markdown"] or (file_name and file_name.lower().endswith((".txt", ".md", ".json"))):
+            text_content = file_content.decode("utf-8")
+            user_msg = f"{message}\n📄 [Archivo adjunto: {file_name}]"
+            db_service.add_message("user", user_msg)
+
+            # Llamar a OpenAI con el texto
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"{message}\n\nContenido del archivo {file_name}:\n{text_content}"}
+                ],
+                stream=True
+            )
+        else:
+            return {"error": f"Tipo de archivo no soportado: {file_type}"}
+
+        # Streaming de respuesta
+        async def generate():
+            full_response = ""
+            try:
+                for chunk in response:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        full_response += content
+                        yield f"data: {json.dumps({'content': content})}\n\n"
+                
+                # Guardar respuesta del bot
+                db_service.add_message("agent", full_response)
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                logger.error(f"Error en streaming upload: {e}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception as e:
+        logger.error(f"Error en upload: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 
