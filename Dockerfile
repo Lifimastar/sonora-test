@@ -19,7 +19,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy the application code
 COPY ./bot.py bot.py
+COPY ./start.py start.py
 COPY ./app app
 
-# Command to run the bot
-CMD ["uv", "run", "bot.py", "--host", "0.0.0.0", "--port", "7860"]
+# Expose both ports (voice: 7860, text chat: 7861)
+EXPOSE 7860 7861
+
+# Command to run BOTH servers
+CMD ["uv", "run", "python", "start.py"]
