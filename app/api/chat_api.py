@@ -19,7 +19,10 @@ from app.prompts import SYSTEM_PROMPT
 router = APIRouter()
 
 # Cliente OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    timeout=30.0
+)
 
 class ChatRequest(BaseModel):
     message: str
@@ -272,6 +275,11 @@ async def upload_file(
     try:
         # Leer archivo
         file_content = await file.read()
+
+        MAX_FILE_SIZE = 10 * 1024 * 1024 # 10MB
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Archivo muy grande. Maximo 10MB.")
+
         file_name = file.filename
         file_type = file.content_type
 
@@ -296,7 +304,7 @@ async def upload_file(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": [
-                        {"type": "text", "text": message or "Que ves en esta imagen?"},
+                        {"type": "text", "text": message if message.strip() else "Describe brevemente esta imagen y pregunta al usuario qué quiere saber sobre ella o qué quiere hacer con ella."},
                         {"type": "image_url", "image_url": {"url": f"data:{file_type};base64,{image_base64}"}}
                     ]}
                 ],
