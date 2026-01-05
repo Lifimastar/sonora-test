@@ -1,173 +1,124 @@
-# Pipecat Quickstart
+# Bot Sonora - Backend
 
-Build and deploy your first voice AI bot in under 10 minutes. Develop locally, then scale to production on Pipecat Cloud.
+Backend del asistente de voz y texto para el Ecosistema Red Futura.
 
-**Two steps**: [🏠 Local Development](#run-your-bot-locally) → [☁️ Production Deployment](#deploy-to-production)
+## 🚀 Tecnologías
 
-## Step 1: Local Development (5 min)
+- **Python 3.11+** con `uv` package manager
+- **Pipecat** - Framework de voz en tiempo real
+- **FastAPI** - API REST para chat de texto
+- **OpenAI** - LLM (GPT-4o-mini) y visión
+- **Deepgram** - Speech-to-Text
+- **Cartesia** - Text-to-Speech
+- **Supabase** - Base de datos y almacenamiento
 
-### Prerequisites
+## ✨ Características
 
-#### Environment
+- ✅ Chat de voz en tiempo real (WebRTC)
+- ✅ Chat de texto sin llamada
+- ✅ Subida de imágenes (con descripción por IA)
+- ✅ Subida de archivos de texto (.txt, .md, .json)
+- ✅ Integración con herramientas (buscar info, guardar datos, etc.)
+- ✅ Memoria persistente por usuario
+- ✅ Historial de conversaciones
 
-- Python 3.10 or later
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager installed
+## 📦 Instalación
 
-#### AI Service API keys
+```bash
+# Instalar uv si no lo tienes
+pip install uv
 
-You'll need API keys from three services:
+# Instalar dependencias
+uv sync
 
-- [Deepgram](https://console.deepgram.com/signup) for Speech-to-Text
-- [OpenAI](https://auth.openai.com/create-account) for LLM inference
-- [Cartesia](https://play.cartesia.ai/sign-up) for Text-to-Speech
+# Configurar variables de entorno
+cp env.example .env
+# Edita .env con tu API keys
+```
 
-> 💡 **Tip**: Sign up for all three now. You'll need them for both local and cloud deployment.
+## 🔧 Ejecución
 
-### Setup
+### Desarrollo Local (Un solo comando)
 
-Navigate to the quickstart directory and set up your environment.
+```bash
+uv run python start.py
+```
 
-1. Clone this repository
+Esto inicia **ambos servidores**:
+- **Puerto 7860**: Servidor de voz (Pipecat/WebRTC)
+- **Puerto 7861**: API de chat de texto (FastAPI)
 
-   ```bash
-   git clone https://github.com/pipecat-ai/pipecat-quickstart.git
-   cd pipecat-quickstart
-   ```
-
-2. Configure your API keys:
-
-   Create a `.env` file:
-
-   ```bash
-   cp env.example .env
-   ```
-
-   Then, add your API keys:
-
-   ```ini
-   DEEPGRAM_API_KEY=your_deepgram_api_key
-   OPENAI_API_KEY=your_openai_api_key
-   CARTESIA_API_KEY=your_cartesia_api_key
-   ```
-
-3. Set up a virtual environment and install dependencies
-
-   ```bash
-   uv sync
-   ```
-
-### Run your bot locally
+### Solo servidor de voz
 
 ```bash
 uv run bot.py
 ```
 
-**Open http://localhost:7860 in your browser** and click `Connect` to start talking to your bot.
-
-> 💡 First run note: The initial startup may take ~20 seconds as Pipecat downloads required models and imports.
-
-🎉 **Success!** Your bot is running locally. Now let's deploy it to production so others can use it.
-
----
-
-## Step 2: Deploy to Production (5 min)
-
-Transform your local bot into a production-ready service. Pipecat Cloud handles scaling, monitoring, and global deployment.
-
-### Prerequisites
-
-1. [Sign up for Pipecat Cloud](https://pipecat.daily.co/sign-up).
-
-2. Set up Docker for building your bot image:
-
-   - **Install [Docker](https://www.docker.com/)** on your system
-   - **Create a [Docker Hub](https://hub.docker.com/) account**
-   - **Login to Docker Hub:**
-
-     ```bash
-     docker login
-     ```
-
-3. Install the Pipecat CLI
-
-   ```bash
-   uv tool install pipecat-ai-cli
-   ```
-
-   > Tip: You can run the `pipecat` CLI using the `pc` alias.
-
-### Configure your deployment
-
-The `pcc-deploy.toml` file tells Pipecat Cloud how to run your bot. **Update the image field** with your Docker Hub username by editing `pcc-deploy.toml`.
-
-```ini
-agent_name = "quickstart"
-image = "YOUR_DOCKERHUB_USERNAME/quickstart:0.1"  # 👈 Update this line
-secret_set = "quickstart-secrets"
-
-[scaling]
-	min_agents = 1
-```
-
-**Understanding the TOML file settings:**
-
-- `agent_name`: Your bot's name in Pipecat Cloud
-- `image`: The Docker image to deploy (format: `username/image:version`)
-- `secret_set`: Where your API keys are stored securely
-- `min_agents`: Number of bot instances to keep ready (1 = instant start)
-
-> 💡 Tip: [Set up `image_credentials`](https://docs.pipecat.ai/deployment/pipecat-cloud/fundamentals/secrets#image-pull-secrets) in your TOML file for authenticated image pulls
-
-### Log in to Pipecat Cloud
-
-To start using the CLI, authenticate to Pipecat Cloud:
+### Solo API de texto
 
 ```bash
-pipecat cloud auth login
+uv run -m uvicorn app.api.server:app --host 0.0.0.0 --port 7861
 ```
 
-You'll be presented with a link that you can click to authenticate your client.
-
-### Configure secrets
-
-Upload your API keys to Pipecat Cloud's secure storage:
+## 🐳 Docker
 
 ```bash
-pipecat cloud secrets set quickstart-secrets --file .env
+# Construir y ejecutar
+docker-compose up --build
+
+# Solo construir
+docker-compose build
+
+# Ejecutar en background
+docker-compose up -d
 ```
 
-This creates a secret set called `quickstart-secrets` (matching your TOML file) and uploads all your API keys from `.env`.
+## 🔑 Variables de Entorno
 
-### Build and deploy
+```env
+# APIs de IA
+DEEPGRAM_API_KEY=...
+OPENAI_API_KEY=...
+CARTESIA_API_KEY=...
 
-Build your Docker image and push to Docker Hub:
+# Base de datos principal (sonoraDB)
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...
 
-```bash
-pipecat cloud docker build-push
+# Base de datos secundaria (Tu Guía)
+TUGUIA_SUPABASE_URL=...
+TUGUIA_SUPABASE_SERVICE_KEY=...
 ```
 
-Deploy to Pipecat Cloud:
+## 📁 Estructura
 
-```bash
-pipecat cloud deploy
+```
+pipecat-quickstart/
+├── bot.py              # Servidor de voz (Pipecat)
+├── start.py            # Script unificado (voz + texto)
+├── app/
+│   ├── api/            # Endpoints FastAPI
+│   │   ├── chat_api.py # Chat de texto + upload
+│   │   └── server.py   # Servidor FastAPI
+│   ├── services/       # Servicios (DB, RAG, TuGuía)
+│   ├── prompts.py      # System prompt del bot
+│   └── tools/          # Herramientas del LLM
+├── Dockerfile
+└── docker-compose.yml
 ```
 
-### Connect to your agent
+## 🔗 API Endpoints
 
-1. Open your [Pipecat Cloud dashboard](https://pipecat.daily.co/)
-2. Select your `quickstart` agent → **Sandbox**
-3. Allow microphone access and click **Connect**
+### Chat de Texto
+- `POST /api/chat` - Enviar mensaje de texto
+- `POST /api/upload` - Subir imagen o archivo
 
----
+### Voz (WebRTC)
+- `POST /api/offer` - Iniciar conexión WebRTC
+- `GET /client` - Cliente web de prueba
 
-## What's Next?
+## 📝 Notas
 
-**🔧 Customize your bot**: Modify `bot.py` to change personality, add functions, or integrate with your data  
-**📚 Learn more**: Check out [Pipecat's docs](https://docs.pipecat.ai/) for advanced features  
-**💬 Get help**: Join [Pipecat's Discord](https://discord.gg/pipecat) to connect with the community
-
-### Troubleshooting
-
-- **Browser permissions**: Allow microphone access when prompted
-- **Connection issues**: Try a different browser or check VPN/firewall settings
-- **Audio issues**: Verify microphone and speakers are working and not muted
+- El timeout de OpenAI está configurado a 30 segundos
+- Tamaño máximo de archivo: 10MB
+- Las imágenes se procesan con GPT-4o-mini Vision
