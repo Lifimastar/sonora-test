@@ -21,9 +21,9 @@ def main():
     processes = []
     
     try:
-        # Servidor de voz (Pipecat)
+        # Servidor de voz (Pipecat) - con host 0.0.0.0 para Docker
         p1 = subprocess.Popen(
-            [sys.executable, "bot.py"],
+            [sys.executable, "bot.py", "--host", "0.0.0.0"],
             cwd=cwd,
         )
         processes.append(p1)
