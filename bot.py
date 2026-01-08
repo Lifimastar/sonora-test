@@ -333,9 +333,6 @@ async def bot(runner_args: RunnerArguments):
             audio_out_enabled=True,
             camera_in_enabled=True,
             vad_analyzer=vad_analyzer,
-            ice_servers=[
-                {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
-            ],
         ),
     }
 
