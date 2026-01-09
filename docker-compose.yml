@@ -5,7 +5,6 @@ services:
       dockerfile: Dockerfile
     expose:
       - "7860"
-      - "7861"
     env_file:
       - .env
     environment:
@@ -19,19 +18,11 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # 1. Servicio de VOZ (Puerto 7860) -> sonora-api.1411sas.com
+      # SOLO Servicio de VOZ (Puerto 7860) -> sonora-api.1411sas.com
       - "traefik.http.routers.voice.rule=Host(`sonora-api.1411sas.com`)"
       - "traefik.http.routers.voice.entrypoints=https"
       - "traefik.http.routers.voice.tls=true"
       - "traefik.http.routers.voice.tls.certresolver=letsencrypt"
       - "traefik.http.routers.voice.service=voice-service"
       - "traefik.http.services.voice-service.loadbalancer.server.port=7860"
-
-      # 2. Servicio de CHAT (Puerto 7861) -> sonora-chat.1411sas.com
-      - "traefik.http.routers.chat.rule=Host(`sonora-chat.1411sas.com`)"
-      - "traefik.http.routers.chat.entrypoints=https"
-      - "traefik.http.routers.chat.tls=true"
-      - "traefik.http.routers.chat.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.chat.service=chat-service"
-      - "traefik.http.services.chat-service.loadbalancer.server.port=7861"
     restart: unless-stopped

@@ -28,12 +28,12 @@ def main():
         )
         processes.append(p1)
         
-        # Servidor de chat texto
-        p2 = subprocess.Popen(
-            [sys.executable, "-m", "app.api.server"],
-            cwd=cwd,
-        )
-        processes.append(p2)
+        # Servidor de chat texto - DESACTIVADO EN RAMA VOICE-ONLY
+        # p2 = subprocess.Popen(
+        #     [sys.executable, "-m", "app.api.server"],
+        #     cwd=cwd,
+        # )
+        # processes.append(p2)
         
         # Esperar a que terminen
         for p in processes:
