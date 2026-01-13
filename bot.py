@@ -334,7 +334,24 @@ async def bot(runner_args: RunnerArguments):
             camera_in_enabled=True,
             vad_analyzer=vad_analyzer,
             ice_servers=[
+                # STUN servers (descubrir IP pública)
                 {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
+                # TURN servers gratuitos de OpenRelay (relay de media)
+                {
+                    "urls": "turn:openrelay.metered.ca:80",
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject",
+                },
+                {
+                    "urls": "turn:openrelay.metered.ca:443",
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject",
+                },
+                {
+                    "urls": "turn:openrelay.metered.ca:443?transport=tcp",
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject",
+                },
             ],
         ),
     }
