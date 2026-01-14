@@ -18,12 +18,12 @@ COPY pyproject.toml uv.lock ./
 # Install dependencies
 RUN uv sync --locked --no-install-project --no-dev
 
-# Copy the application code
-COPY ./bot.py ./start.py ./
+# Copy the application code (solo bot.py, sin start.py)
+COPY ./bot.py ./
 COPY ./app ./app
 
-# Expose both ports (voice: 7860, text chat: 7861)
-EXPOSE 7860 7861
+# Expose voice port only
+EXPOSE 7860
 
-# Command to run BOTH servers
-CMD ["uv", "run", "python", "start.py"]
+# Command to run voice server directly
+CMD ["uv", "run", "python", "bot.py", "--host", "0.0.0.0"]
