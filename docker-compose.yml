@@ -1,15 +1,28 @@
 # ============================================
-# SONORA VOICE - Servidor WebRTC
-# Despliegue manual (sin Coolify/Traefik)
+# SONORA VOICE - Para Coolify con HTTPS
 # ============================================
 services:
   voice:
     build:
       context: .
       dockerfile: Dockerfile
-    # Puerto expuesto DIRECTAMENTE al host
-    ports:
-      - "7860:7860"
+    expose:
+      - "7860"
     env_file:
       - .env
+    environment:
+      - 'DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}'
+      - 'OPENAI_API_KEY=${OPENAI_API_KEY}'
+      - 'CARTESIA_API_KEY=${CARTESIA_API_KEY}'
+      - 'SUPABASE_URL=${SUPABASE_URL}'
+      - 'SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}'
+      - 'TUGUIA_SUPABASE_URL=${TUGUIA_SUPABASE_URL}'
+      - 'TUGUIA_SUPABASE_SERVICE_KEY=${TUGUIA_SUPABASE_SERVICE_KEY}'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.voice.rule=Host(`sonora-api.1411sas.com`)
+      - traefik.http.routers.voice.entrypoints=https
+      - traefik.http.routers.voice.tls=true
+      - traefik.http.routers.voice.tls.certresolver=letsencrypt
+      - traefik.http.services.voice.loadbalancer.server.port=7860
     restart: unless-stopped
