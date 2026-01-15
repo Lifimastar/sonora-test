@@ -314,6 +314,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
+    from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
+    from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
+    from aiortc import RTCIceServer
 
     vad_analyzer = SileroVADAnalyzer(params=VADParams(
         confidence=0.8, # Sensibilidad mas baja (requiere voz mas clara)
@@ -321,47 +324,54 @@ async def bot(runner_args: RunnerArguments):
         min_silence_duration_ms=500
     ))
 
-    transport_params = {
-        "daily": lambda: DailyParams(
-            audio_in_enabled=True,
-            audio_out_enabled=True,
-            vad_analyzer=vad_analyzer,
-            transcription_enabled=True,
+    # Configuración de ICE servers para NAT traversal
+    ice_servers = [
+        RTCIceServer(urls=["stun:stun.relay.metered.ca:80"]),
+        RTCIceServer(
+            urls=["turn:global.relay.metered.ca:80"],
+            username="67294d5d27f8eadb75337cbe",
+            credential="eQXgq7tyrU2blNzT",
         ),
-        "webrtc": lambda: TransportParams(
-            audio_in_enabled=True,
-            audio_out_enabled=True,
-            camera_in_enabled=True,
-            vad_analyzer=vad_analyzer,
-            ice_servers=[
-                # STUN server de Metered
-                {"urls": ["stun:stun.relay.metered.ca:80"]},
-                # TURN servers de Metered.ca (plan gratuito 500MB/mes)
-                {
-                    "urls": ["turn:global.relay.metered.ca:80"],
-                    "username": "67294d5d27f8eadb75337cbe",
-                    "credential": "eQXgq7tyrU2blNzT",
-                },
-                {
-                    "urls": ["turn:global.relay.metered.ca:80?transport=tcp"],
-                    "username": "67294d5d27f8eadb75337cbe",
-                    "credential": "eQXgq7tyrU2blNzT",
-                },
-                {
-                    "urls": ["turn:global.relay.metered.ca:443"],
-                    "username": "67294d5d27f8eadb75337cbe",
-                    "credential": "eQXgq7tyrU2blNzT",
-                },
-                {
-                    "urls": ["turns:global.relay.metered.ca:443?transport=tcp"],
-                    "username": "67294d5d27f8eadb75337cbe",
-                    "credential": "eQXgq7tyrU2blNzT",
-                },
-            ],
+        RTCIceServer(
+            urls=["turn:global.relay.metered.ca:80?transport=tcp"],
+            username="67294d5d27f8eadb75337cbe",
+            credential="eQXgq7tyrU2blNzT",
         ),
-    }
+        RTCIceServer(
+            urls=["turn:global.relay.metered.ca:443"],
+            username="67294d5d27f8eadb75337cbe",
+            credential="eQXgq7tyrU2blNzT",
+        ),
+        RTCIceServer(
+            urls=["turns:global.relay.metered.ca:443?transport=tcp"],
+            username="67294d5d27f8eadb75337cbe",
+            credential="eQXgq7tyrU2blNzT",
+        ),
+    ]
 
-    transport = await create_transport(runner_args, transport_params)
+    # Determinar el tipo de transporte
+    if runner_args.transport == "daily":
+        transport_params = {
+            "daily": lambda: DailyParams(
+                audio_in_enabled=True,
+                audio_out_enabled=True,
+                vad_analyzer=vad_analyzer,
+                transcription_enabled=True,
+            ),
+        }
+        transport = await create_transport(runner_args, transport_params)
+    else:
+        # Para webrtc, crear SmallWebRTCConnection manualmente con ice_servers
+        webrtc_connection = SmallWebRTCConnection(ice_servers=ice_servers)
+        transport = SmallWebRTCTransport(
+            webrtc_connection=webrtc_connection,
+            params=TransportParams(
+                audio_in_enabled=True,
+                audio_out_enabled=True,
+                camera_in_enabled=True,
+                vad_analyzer=vad_analyzer,
+            ),
+        )
 
     await run_bot(transport, runner_args)
 
