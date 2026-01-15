@@ -349,29 +349,17 @@ async def bot(runner_args: RunnerArguments):
         ),
     ]
 
-    # Determinar el tipo de transporte
-    if runner_args.transport == "daily":
-        transport_params = {
-            "daily": lambda: DailyParams(
-                audio_in_enabled=True,
-                audio_out_enabled=True,
-                vad_analyzer=vad_analyzer,
-                transcription_enabled=True,
-            ),
-        }
-        transport = await create_transport(runner_args, transport_params)
-    else:
-        # Para webrtc, crear SmallWebRTCConnection manualmente con ice_servers
-        webrtc_connection = SmallWebRTCConnection(ice_servers=ice_servers)
-        transport = SmallWebRTCTransport(
-            webrtc_connection=webrtc_connection,
-            params=TransportParams(
-                audio_in_enabled=True,
-                audio_out_enabled=True,
-                camera_in_enabled=True,
-                vad_analyzer=vad_analyzer,
-            ),
-        )
+    # Crear SmallWebRTCConnection con ice_servers para NAT traversal
+    webrtc_connection = SmallWebRTCConnection(ice_servers=ice_servers)
+    transport = SmallWebRTCTransport(
+        webrtc_connection=webrtc_connection,
+        params=TransportParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            camera_in_enabled=True,
+            vad_analyzer=vad_analyzer,
+        ),
+    )
 
     await run_bot(transport, runner_args)
 
