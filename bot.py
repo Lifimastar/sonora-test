@@ -333,6 +333,31 @@ async def bot(runner_args: RunnerArguments):
             audio_out_enabled=True,
             camera_in_enabled=True,
             vad_analyzer=vad_analyzer,
+            ice_servers=[
+                # STUN server de Metered
+                {"urls": ["stun:stun.relay.metered.ca:80"]},
+                # TURN servers de Metered.ca (plan gratuito 500MB/mes)
+                {
+                    "urls": ["turn:global.relay.metered.ca:80"],
+                    "username": "67294d5d27f8eadb75337cbe",
+                    "credential": "eQXgq7tyrU2blNzT",
+                },
+                {
+                    "urls": ["turn:global.relay.metered.ca:80?transport=tcp"],
+                    "username": "67294d5d27f8eadb75337cbe",
+                    "credential": "eQXgq7tyrU2blNzT",
+                },
+                {
+                    "urls": ["turn:global.relay.metered.ca:443"],
+                    "username": "67294d5d27f8eadb75337cbe",
+                    "credential": "eQXgq7tyrU2blNzT",
+                },
+                {
+                    "urls": ["turns:global.relay.metered.ca:443?transport=tcp"],
+                    "username": "67294d5d27f8eadb75337cbe",
+                    "credential": "eQXgq7tyrU2blNzT",
+                },
+            ],
         ),
     }
 
