@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Quickstart example for building voice AI bots with Pipecat"
 requires-python = ">=3.10"
 dependencies = [
-    "pipecat-ai[webrtc,silero,deepgram,openai,cartesia,local-smart-turn-v3,runner]",
+    "pipecat-ai[webrtc,daily,silero,deepgram,openai,cartesia,local-smart-turn-v3,runner]  ; sys_platform != 'win32'",
+    "pipecat-ai[webrtc,silero,deepgram,openai,cartesia,local-smart-turn-v3,runner]  ; sys_platform == 'win32'",
     "pipecat-ai-cli",
     "aiohttp>=3.13.2",
     "openai>=2.8.1",
@@ -23,3 +24,11 @@ dev = [
 line-length = 100
 [tool.ruff.lint]
 select = ["I"]
+
+[tool.uv]
+# Resolver para plataformas Linux además de Windows local
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'win32'",
+]

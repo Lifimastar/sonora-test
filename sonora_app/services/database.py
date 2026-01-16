@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from loguru import logger
 from supabase import create_client, Client
-from app.core.supabase_client import get_supabase
+from sonora_app.core.supabase_client import get_supabase
 
 load_dotenv()
 

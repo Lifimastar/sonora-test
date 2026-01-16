@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.api.chat_api import router as chat_router
+from sonora_app.api.chat_api import router as chat_router
 
 app = FastAPI(title="Bot Sonora Chat API", version="1.0.0")
 

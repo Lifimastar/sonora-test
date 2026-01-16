@@ -2,7 +2,7 @@ from loguru import logger
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.pipeline.task import PipelineTask
 from pipecat.frames.frames import LLMRunFrame, StartInterruptionFrame
-from app.services.database import DatabaseService
+from sonora_app.services.database import DatabaseService
 
 class ConversationActionHandler:
     def __init__(self, db_service: DatabaseService, context: LLMContext):
@@ -20,7 +20,7 @@ class ConversationActionHandler:
         if user_id:
             logger.info(f"Configurando usuario: {user_id}")
             # Importar aquí para evitar probelas de referencia circular si las hubiera
-            from app.context import current_user_id
+            from sonora_app.context import current_user_id
             current_user_id.set(user_id)
             self.db_service.user_id = user_id
             #self.db_service.ensure_user_exists(user_id)

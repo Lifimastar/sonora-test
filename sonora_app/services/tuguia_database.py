@@ -1,7 +1,7 @@
 #import os
 #from supabase import create_client, Client
 #from dotenv import load_dotenv
-from app.core.supabase_client import get_tuguia_supabase
+from sonora_app.core.supabase_client import get_tuguia_supabase
 
 class TuGuiaDatabase:
     """Servicio para interactuar con la base de datos de Tu Guia"""

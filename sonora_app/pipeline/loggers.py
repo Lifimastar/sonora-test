@@ -3,7 +3,7 @@ Processors de Pipecat para interceptar y guardar mensajes.
 """
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.frames.frames import TranscriptionFrame, TextFrame, LLMFullResponseEndFrame, EndFrame
-from app.services.database import DatabaseService
+from sonora_app.services.database import DatabaseService
 
 class UserLogger(FrameProcessor):
     def __init__(self, db_service):

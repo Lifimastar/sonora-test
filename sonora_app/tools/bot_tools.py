@@ -1,15 +1,15 @@
-from app.services.database import DatabaseService
-from app.core.supabase_client import get_supabase
-from app.services.tuguia_database import TuGuiaDatabase
-from app.pipeline.vision_processor import VisionCaptureProcessor
+from sonora_app.services.database import DatabaseService
+from sonora_app.core.supabase_client import get_supabase
+from sonora_app.services.tuguia_database import TuGuiaDatabase
+from sonora_app.pipeline.vision_processor import VisionCaptureProcessor
 from supabase import create_client, Client
 from pipecat.services.llm_service import FunctionCallParams
 from loguru import logger
 import secrets
 import string
-from app.utils.security import generar_password_segura
-from app.services.rag import get_relevant_context
-from app.context import current_user_id
+from sonora_app.utils.security import generar_password_segura
+from sonora_app.services.rag import get_relevant_context
+from sonora_app.context import current_user_id
 from pipecat.processors.aggregators.llm_context import LLMContext
 
 # Cliente Supabase para operaciones administrativas (crear usuarios, contar)
@@ -199,7 +199,7 @@ class BotTools:
                 target_user_id = self.db_service.user_id # Obtener del servicio DB que ya tiene el contexto
                 if not target_user_id:
                      # Fallback seguro
-                    from app.context import current_user_id
+                    from sonora_app.context import current_user_id
                     target_user_id = current_user_id.get()
             
             # Llamar al servicio DB actualizado

@@ -24,14 +24,7 @@ import datetime
 import os
 import time
 
-from app.actions.conversation_handler import ConversationActionHandler
-from app.tools.bot_tools import BotTools
-from app.context import current_user_id
-from app.prompts import SYSTEM_PROMPT
-from app.pipeline.loggers import UserLogger, AssistantLogger
-from app.pipeline.vision_processor import VisionCaptureProcessor
 from dotenv import load_dotenv
-from app.services.database import DatabaseService
 from loguru import logger
 import sys
 
@@ -79,6 +72,14 @@ load_dotenv(override=True)
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
+    # Imports moved here to avoid circular import with dailyco/pipecat-base app.py
+    from sonora_app.actions.conversation_handler import ConversationActionHandler
+    from sonora_app.tools.bot_tools import BotTools
+    from sonora_app.context import current_user_id
+    from sonora_app.prompts import SYSTEM_PROMPT
+    from sonora_app.pipeline.loggers import UserLogger, AssistantLogger
+    from sonora_app.pipeline.vision_processor import VisionCaptureProcessor
+    from sonora_app.services.database import DatabaseService
 
     logger.info(f"Starting bot")
     db_service = DatabaseService()
@@ -314,53 +315,31 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
-    from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
-    from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
-    from aiortc import RTCIceServer
-
+    from pipecat.transports.daily.transport import DailyParams
+    
     vad_analyzer = SileroVADAnalyzer(params=VADParams(
-        confidence=0.8, # Sensibilidad mas baja (requiere voz mas clara)
-        min_speech_duration_ms=300, # Ignorar ruidos cortos (clicks, golpes)
+        confidence=0.8,
+        min_speech_duration_ms=300,
         min_silence_duration_ms=500
     ))
 
-    # Configuración de ICE servers para NAT traversal
-    ice_servers = [
-        RTCIceServer(urls=["stun:stun.relay.metered.ca:80"]),
-        RTCIceServer(
-            urls=["turn:global.relay.metered.ca:80"],
-            username="67294d5d27f8eadb75337cbe",
-            credential="eQXgq7tyrU2blNzT",
+    # Configurar parámetros de transporte para diferentes entornos
+    # Pipecat Cloud usa "daily", local usa "webrtc"
+    transport_params = {
+        "daily": lambda: DailyParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_analyzer=vad_analyzer,
         ),
-        RTCIceServer(
-            urls=["turn:global.relay.metered.ca:80?transport=tcp"],
-            username="67294d5d27f8eadb75337cbe",
-            credential="eQXgq7tyrU2blNzT",
-        ),
-        RTCIceServer(
-            urls=["turn:global.relay.metered.ca:443"],
-            username="67294d5d27f8eadb75337cbe",
-            credential="eQXgq7tyrU2blNzT",
-        ),
-        RTCIceServer(
-            urls=["turns:global.relay.metered.ca:443?transport=tcp"],
-            username="67294d5d27f8eadb75337cbe",
-            credential="eQXgq7tyrU2blNzT",
-        ),
-    ]
-
-    # Crear SmallWebRTCConnection con ice_servers para NAT traversal
-    webrtc_connection = SmallWebRTCConnection(ice_servers=ice_servers)
-    transport = SmallWebRTCTransport(
-        webrtc_connection=webrtc_connection,
-        params=TransportParams(
+        "webrtc": lambda: TransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
             camera_in_enabled=True,
             vad_analyzer=vad_analyzer,
         ),
-    )
+    }
 
+    transport = await create_transport(runner_args, transport_params)
     await run_bot(transport, runner_args)
 
 

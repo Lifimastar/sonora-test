@@ -8,7 +8,7 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from openai import OpenAI
 #from supabase import create_client, Client
-from app.core.supabase_client import get_supabase
+from sonora_app.core.supabase_client import get_supabase
 
 load_dotenv()
 

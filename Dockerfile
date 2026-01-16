@@ -1,29 +1,17 @@
-FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
-
-# Install system dependencies (ffmpeg is often required for audio)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
-WORKDIR /app
+FROM dailyco/pipecat-base:latest
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
+
+# Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
 
-# Copy dependency files first (for better caching)
-COPY pyproject.toml uv.lock ./
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
 
-# Install dependencies
-RUN uv sync --locked --no-install-project --no-dev
-
-# Copy the application code (solo bot.py, sin start.py)
-COPY ./bot.py ./
-COPY ./app ./app
-
-# Expose voice port only
-EXPOSE 7860
-
-# Command to run voice server directly
-CMD ["uv", "run", "python", "bot.py", "--host", "0.0.0.0"]
+# Copy the application code
+COPY ./bot.py bot.py
+COPY ./sonora_app ./sonora_app

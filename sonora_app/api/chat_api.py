@@ -11,10 +11,10 @@ from typing import Optional
 from openai import OpenAI
 from loguru import logger
 
-from app.services.database import DatabaseService
-from app.services.rag import get_relevant_context
-from app.services.tuguia_database import TuGuiaDatabase
-from app.prompts import SYSTEM_PROMPT
+from sonora_app.services.database import DatabaseService
+from sonora_app.services.rag import get_relevant_context
+from sonora_app.services.tuguia_database import TuGuiaDatabase
+from sonora_app.prompts import SYSTEM_PROMPT
 
 router = APIRouter()
 

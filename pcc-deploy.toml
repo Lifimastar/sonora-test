@@ -1,6 +1,6 @@
-agent_name = "quickstart"
-image = "your_username/quickstart:0.1"
-secret_set = "quickstart-secrets"
+agent_name = "sonora-voice"
+image = "lifimastar/sonora-voice:0.1"
+secret_set = "sonora-secrets"
 agent_profile = "agent-1x"
 
 # RECOMMENDED: Set an image pull secret:
