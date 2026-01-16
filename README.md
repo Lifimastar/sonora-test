@@ -1,205 +1,104 @@
-# Sonora Test - Bot de Voz
+# Sonora Voice Bot
 
-Bot de voz con Pipecat Framework desplegado en Pipecat Cloud.
+> Bot de voz con IA para el Ecosistema Sonora - Desplegado en Pipecat Cloud
 
-## Ecosistema Sonora
+## 🌐 Ecosistema Sonora
 
-Este backend es parte de un sistema de 3 repositorios:
-
-| Repositorio | Descripción | Despliegue |
-|-------------|-------------|------------|
-| [sonora-frontend](https://github.com/Lifimastar/sonora-frontend) | Frontend Next.js | Coolify |
+| Repo | Descripción | Deploy |
+|------|-------------|--------|
+| [sonora-frontend](https://github.com/Lifimastar/sonora-frontend) | UI Next.js | Coolify |
 | **sonora-test** (este) | Bot de voz Pipecat | Pipecat Cloud |
-| [sonora-chat](https://github.com/Lifimastar/sonora-chat) | API de chat | Coolify |
+| sonora-chat | API de chat texto | Coolify |
 
-**Flujo:** Usuario → sonora-frontend → Pipecat Cloud → sonora-test → Supabase
+---
 
-## Tecnologías
+## 🧠 Capacidades del Bot
 
-- **Framework:** Pipecat (pipecat-ai)
-- **Lenguaje:** Python 3.10+
-- **STT:** Deepgram
-- **LLM:** OpenAI GPT-4
-- **TTS:** Cartesia
-- **Transporte:** DailyTransport (producción) / SmallWebRTCTransport (local)
-- **DB:** Supabase
+| Funcionalidad | Herramienta | Archivo |
+|---------------|-------------|---------|
+| Memoria persistente | `guardar_dato`, `borrar_dato` | `bot_tools.py` |
+| Base de conocimiento | `buscar_informacion` | `bot_tools.py`, `rag.py` |
+| Contar usuarios TuGuía | `contar_usuarios_tuguia` | `bot_tools.py` |
+| Ver cámara | `ver_camara` | `bot_tools.py` |
+| Procesar imágenes | Recibe via `user_multimodal_message` | `bot.py` |
+| Procesar archivos | Recibe via `user_file_message` | `bot.py` |
 
-## Estructura del Proyecto
+---
+
+## 📁 Estructura de Archivos
 
 ```
 sonora-test/
-├── bot.py                    # Bot principal (entry point)
-├── sonora_app/               # Módulo de la aplicación
-│   ├── __init__.py
-│   ├── actions/              # Acciones del bot
-│   │   └── conversation_handler.py
-│   └── llm.py                # Configuración del LLM
-├── pcc-deploy.toml           # Configuración de Pipecat Cloud
-├── pyproject.toml            # Dependencias Python (UV)
-├── Dockerfile                # Para build de imagen Docker
-└── .env                      # Variables de entorno (NO COMMITEAR)
+├── bot.py                      # Entry point, handlers de mensajes
+├── pipecat.toml                # Configuración Pipecat Cloud
+├── Dockerfile                  # Para build de imagen
+└── sonora_app/
+    ├── prompts.py              # System prompt del bot
+    ├── tools/
+    │   └── bot_tools.py        # Herramientas del LLM
+    ├── services/
+    │   ├── database.py         # Servicio de BD
+    │   ├── rag.py              # Búsqueda en base de conocimiento
+    │   └── tuguia_database.py  # Base de datos TuGuía
+    └── pipeline/
+        └── conversation_handler.py # Manejo de conversación
 ```
 
-## Configuración
+---
 
-### Variables de Entorno (.env)
+## 🔧 Handlers de Mensajes (bot.py)
 
-```env
-# APIs de AI
-DEEPGRAM_API_KEY=xxx
-OPENAI_API_KEY=xxx
-CARTESIA_API_KEY=xxx
+Los mensajes del frontend llegan a `on_app_message` (líneas 238-304):
 
-# Supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=xxx
-```
+| Tipo (`data.t`) | Propósito |
+|-----------------|-----------|
+| `user_text_message` | Texto escrito en llamada |
+| `action` | set_conversation_id |
+| `user_image` | Imagen legacy (no usado) |
+| `user_multimodal_message` | Texto + URLs de imágenes |
+| `user_file_message` | Texto + contenido de archivo |
 
-### pcc-deploy.toml
+---
 
-```toml
-[image]
-name = "lifimastar/sonora-voice"
-tag = "0.1"
-
-[deploy]
-agent_name = "sonora-voice"
-secret_set = "sonora-secrets"
-```
-
-## Desarrollo Local
+## 🚀 Deploy a Pipecat Cloud
 
 ```bash
-# Instalar dependencias con UV
-uv sync
-
-# Ejecutar bot localmente (SmallWebRTC)
-uv run python bot.py --local
-
-# O con variables de entorno
-DEEPGRAM_API_KEY=xxx OPENAI_API_KEY=xxx uv run python bot.py --local
-```
-
-## Despliegue a Pipecat Cloud
-
-### 1. Build de la imagen Docker
-
-```bash
+# 1. Build imagen Docker
 docker build -t lifimastar/sonora-voice:0.1 .
-```
 
-### 2. Push a Docker Hub
-
-```bash
+# 2. Push a Docker Hub
 docker push lifimastar/sonora-voice:0.1
-```
 
-### 3. Deploy a Pipecat Cloud
-
-```bash
+# 3. Deploy a Pipecat Cloud
 pcc deploy
 ```
 
-### 4. Verificar estado
+---
 
-```bash
-pcc agent list
-pcc agent logs sonora-voice
-```
+## ⚙️ Secrets en Pipecat Cloud
 
-## Arquitectura del Bot
+Configurar en el dashboard de Pipecat Cloud:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       Pipeline Pipecat                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Audio In → Deepgram STT → LLM (OpenAI) → Cartesia TTS → Audio Out
-│                  │              │              │                   │
-│                  ▼              ▼              ▼                   │
-│            Transcript    Context/Tools    TTS Audio              │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │    Supabase     │
-                    │  (Persistencia) │
-                    └─────────────────┘
+DEEPGRAM_API_KEY=...
+OPENAI_API_KEY=...
+CARTESIA_API_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Flujo de Mensajes
+---
 
-1. **Frontend envía `set_conversation_id`**
-   ```json
-   {
-     "action": "set_conversation_id",
-     "arguments": {
-       "conversation_id": "uuid",
-       "user_id": "uuid"
-     }
-   }
-   ```
+## 🐛 Troubleshooting
 
-2. **Bot recibe y configura** el ID de conversación
+### Bot no recibe imágenes
+- El frontend debe enviar `user_multimodal_message` (guión bajo, no guión)
+- Verificar que el handler existe en `bot.py` líneas 276-286
 
-3. **Bot saluda** al usuario (mensaje inicial configurado)
+### Bot no recibe archivos
+- El frontend debe enviar `user_file_message`
+- Verificar handler en `bot.py` líneas 288-299
 
-4. **Conversación normal** - mensajes van y vienen
-
-5. **Mensajes se guardan** en Supabase automáticamente
-
-## Manejo de Actions
-
-El bot puede recibir acciones del frontend via `sendClientMessage`:
-
-```python
-# En bot.py, líneas ~256-263
-if action_data.get("action") == "set_conversation_id":
-    args = action_data.get("arguments", {})
-    logger.info(f"Interceptado set_conversation_id: {args}")
-    # Configura el conversation_id para persistencia
-```
-
-## Secretos en Pipecat Cloud
-
-Los secretos se configuran en el Dashboard de Pipecat Cloud:
-
-1. Ir a **Settings** → **Secrets**
-2. Crear conjunto de secretos llamado `sonora-secrets`
-3. Agregar las claves API (DEEPGRAM, OPENAI, CARTESIA, SUPABASE)
-
-## Comandos Útiles
-
-```bash
-# Ver agentes
-pcc agent list
-
-# Ver logs en tiempo real
-pcc agent logs sonora-voice -f
-
-# Reiniciar agente
-pcc agent restart sonora-voice
-
-# Eliminar agente
-pcc agent delete sonora-voice
-
-# Ver deployments
-pcc deployment list
-```
-
-## Problemas Comunes
-
-| Problema | Causa | Solución |
-|----------|-------|----------|
-| `No module pipecat.transports.daily` | Falta dependencia | Agregar `daily` a extras de pipecat-ai |
-| `Circular import` | Imports de app.* en top-level | Mover imports dentro de funciones |
-| Bot no responde | Secretos no configurados | Verificar en Pipecat Cloud Dashboard |
-| STUN 401 | Usando TURN servers manuales | Dejar que Pipecat Cloud maneje TURN |
-
-## Notas Importantes
-
-- La imagen Docker usa `dailyco/pipecat-base:latest` como base
-- Los imports de `sonora_app.*` deben ser dentro de `run_bot()`, no a nivel de módulo
-- El `create_transport` se encarga de elegir el transporte correcto según el entorno
-- Pipecat Cloud maneja automáticamente los servidores TURN/STUN
+### Error de imports
+- Asegurarse que `sonora_app/` está en PYTHONPATH
+- La estructura cambió de `app/` a `sonora_app/` para Pipecat Cloud
