@@ -235,6 +235,15 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         logger.info(f"Client connected. Waiting for conversation config...")
         # NO enviamos mensajes aquí. Esperamos la acción del frontend.
 
+    @transport.event_handler("on_first_participant_joined")
+    async def on_first_participant_joined(transport, participant):
+        logger.info(f"🎥 First participant joined: {participant['id']}")
+        # Capturar transcripción del participante
+        await transport.capture_participant_transcription(participant["id"])
+        # Capturar video del participante para VisionCaptureProcessor
+        await transport.capture_participant_video(participant["id"], framerate=1)
+        logger.info(f"📹 Video capture started for participant {participant['id']}")
+
     @transport.event_handler("on_app_message")
     async def on_app_message(transport, message, sender):
         logger.info(f"📨 App message received: {message}")
