@@ -1,7 +1,7 @@
 agent_name = "sonora-voice"
 image = "lifimastar/sonora-voice:0.1"
 secret_set = "sonora-secrets"
-agent_profile = "agent-1x"
+agent_profile = "agent-2x"  # Necesario para voice + video
 
 # RECOMMENDED: Set an image pull secret:
 # https://docs.pipecat.ai/deployment/pipecat-cloud/fundamentals/secrets#image-pull-secrets

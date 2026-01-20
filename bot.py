@@ -329,6 +329,7 @@ async def bot(runner_args: RunnerArguments):
         "daily": lambda: DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
+            video_in_enabled=True,  # Habilitar video para recibir frames de cámara
             vad_analyzer=vad_analyzer,
         ),
         "webrtc": lambda: TransportParams(
