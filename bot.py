@@ -44,7 +44,7 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 logger.info("✅ Silero VAD model loaded")
 
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMMessagesAppendFrame, LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartInterruptionFrame, StopInterruptionFrame
+from pipecat.frames.frames import LLMMessagesAppendFrame, LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartInterruptionFrame
 
 logger.info("Loading pipeline components...")
 
@@ -258,7 +258,6 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                         # Interrumpir TTS actual y enviar mensaje al LLM
                         await task.queue_frames([
                             StartInterruptionFrame(),
-                            StopInterruptionFrame(),
                             LLMMessagesAppendFrame(
                                 messages=[{"role": "user", "content": text}],
                                 run_llm=True
