@@ -251,7 +251,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             # 1. Interceptar mensajes de texto del usuario
             if message.get("label") == "rtvi-ai" and message.get("type") == "client-message":
                 data = message.get("data", {})
-                if data.get("t") == "user_text_message":
+                if data.get("t") in ("user_text_message", "user-text-message"):
                     text = data.get("d", {}).get("text")
                     if text:
                         logger.info(f"💬 Texto recibido del usuario: {text}")
