@@ -255,6 +255,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                     text = data.get("d", {}).get("text")
                     if text:
                         logger.info(f"💬 Texto recibido del usuario: {text}")
+                        # Guardar el mensaje del usuario en la BD
+                        db_service.add_message("user", text)
                         # Interrumpir TTS actual y enviar mensaje al LLM
                         await task.queue_frames([
                             StartInterruptionFrame(),
