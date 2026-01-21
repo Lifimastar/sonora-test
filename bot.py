@@ -44,7 +44,7 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 logger.info("✅ Silero VAD model loaded")
 
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartInterruptionFrame
+from pipecat.frames.frames import LLMMessagesAppendFrame, LLMRunFrame, TextFrame, TranscriptionFrame, UserStartedSpeakingFrame, UserStoppedSpeakingFrame, StartInterruptionFrame, StopInterruptionFrame
 
 logger.info("Loading pipeline components...")
 
@@ -255,11 +255,15 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
                     text = data.get("d", {}).get("text")
                     if text:
                         logger.info(f"💬 Texto recibido del usuario: {text}")
-                        await task.queue_frame(StartInterruptionFrame())
-                        # Inyectar frames para simular un turno de usuario
-                        await task.queue_frame(UserStartedSpeakingFrame())
-                        await task.queue_frame(TranscriptionFrame(text=text, user_id="user", timestamp=datetime.datetime.now().isoformat()))
-                        await task.queue_frame(UserStoppedSpeakingFrame())
+                        # Interrumpir TTS actual y enviar mensaje al LLM
+                        await task.queue_frames([
+                            StartInterruptionFrame(),
+                            StopInterruptionFrame(),
+                            LLMMessagesAppendFrame(
+                                messages=[{"role": "user", "content": text}],
+                                run_llm=True
+                            )
+                        ])
                         return
 
             # 2. Interceptar set_conversation_id
