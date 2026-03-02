@@ -109,7 +109,7 @@ def get_relevant_context(query: str) -> str:
     """
     # Buscar documentos relevantes
     # BAJAMOS EL UMBRAL A 0.3 PARA MAYOR RECALL
-    results = search_knowledge_base(query, match_threshold=0.3, match_count=6)
+    results = search_knowledge_base(query, match_threshold=0.55, match_count=4)
     
     # Formatear para el LLM
     context = format_context_for_llm(results)
